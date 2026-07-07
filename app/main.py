@@ -11,15 +11,22 @@ from pathlib import Path
 
 import psycopg
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 
-from foodsafety_rag import pipeline, store
+from foodsafety_rag import pipeline, store, stream
 from foodsafety_rag.config import get_settings
 from foodsafety_rag.generate import GenerationError
 from foodsafety_rag.schemas import Answer, AskRequest
 
 STATIC_DIR = Path(__file__).parent / "static"
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures"
+
+SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+
+
+def _sse(event: dict) -> str:
+    data = {k: v for k, v in event.items() if k != 'type'}
+    return f"event: {event['type']}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
 def _normalize(question: str) -> str:
@@ -87,3 +94,21 @@ def ask(request: AskRequest) -> Answer:
             status_code=502,
             detail="The language model call failed. Please try again in a moment.",
         )
+
+
+@app.post("/ask/stream")
+def ask_stream(request: AskRequest) -> StreamingResponse:
+    settings = get_settings()
+
+    def live():
+        try:
+            with store.get_conn(settings.database_url) as conn:
+                for event in stream.stream_events(request.question, conn=conn):
+                    yield _sse(event)
+        except psycopg.OperationalError:
+            yield _sse({"type": "error",
+                        "detail": "Database unavailable. Is the pgvector container "
+                                  "running? Start it with: docker compose up -d db"})
+        yield _sse({"type": "done"})
+
+    return StreamingResponse(live(), media_type="text/event-stream", headers=SSE_HEADERS)

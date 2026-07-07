@@ -108,3 +108,61 @@ def test_index_serves_branded_page(client):
     assert r.status_code == 200
     assert "Food-Safety Compliance Assistant" in r.text
     assert "#024731" in r.text  # UH Green - PMCS branding present
+
+
+def _parse_sse(text):
+    """Parse SSE text into a list of (event_type, json_data) tuples."""
+    import json as _json
+    events = []
+    etype, data = None, None
+    for line in text.splitlines():
+        if line.startswith("event: "):
+            etype = line[len("event: "):]
+        elif line.startswith("data: "):
+            data = _json.loads(line[len("data: "):])
+        elif line == "":
+            if etype is not None:
+                events.append((etype, data))
+            etype, data = None, None
+    return events
+
+
+def test_ask_stream_live_emits_stage_then_answer(client, monkeypatch):
+    c, main = client
+    monkeypatch.setattr(main.store, "get_conn", lambda url: FakeConn())
+
+    def fake_events(question, *, conn, client=None):
+        yield {"type": "stage", "step": "embed", "status": "done", "detail": "384-dim"}
+        yield {"type": "token", "text": "165°F."}
+        yield {"type": "answer", "question": question, "answer": "165°F.",
+               "grounded": True, "citations": [], "passages": []}
+
+    monkeypatch.setattr(main.stream, "stream_events", fake_events)
+    r = c.post("/ask/stream", json={"question": "q?"})
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("text/event-stream")
+    events = _parse_sse(r.text)
+    types = [t for t, _ in events]
+    assert types[0] == "stage" and "answer" in types and types[-1] == "done"
+    answer = next(d for t, d in events if t == "answer")
+    assert set(answer) == {"question", "answer", "grounded", "citations", "passages"}
+
+
+def test_ask_stream_empty_question_is_422(client):
+    c, _ = client
+    assert c.post("/ask/stream", json={"question": ""}).status_code == 422
+
+
+def test_ask_stream_db_down_emits_error_frame(client, monkeypatch):
+    c, main = client
+
+    def boom(url):
+        import psycopg
+        raise psycopg.OperationalError("connection refused")
+
+    monkeypatch.setattr(main.store, "get_conn", boom)
+    r = c.post("/ask/stream", json={"question": "q?"})
+    assert r.status_code == 200                      # stream already opened
+    events = _parse_sse(r.text)
+    assert any(t == "error" and "docker compose" in d["detail"] for t, d in events)
+    assert events[-1][0] == "done"
