@@ -15,5 +15,17 @@ services:
       timeout: 3s
       retries: 10
 
+  app:
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/foodsafety
+    ports:
+      # Host port defaults to 8000 (override with APP_PORT if 8000 is taken)
+      - "${APP_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   pgdata:
