@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Food-Safety Compliance Assistant</title>
+<!--
+  Styled with the UH Mānoa PMCS design system (skill.design-system).
+  Tokens inlined verbatim from tokens/colors.css, typography.css, spacing.css,
+  web.css — no build step, no external CDN. Light mode only; Helvetica Neue
+  system stack; cards use a top-accent border with bottom-only radius.
+-->
+<style>
+  :root {
+    /* --- PMCS brand palette --- */
+    --uh-green: #024731;
+    --research-blue: #1F5AA6;
+    --sand-gold: #EAA000;
+    --alert-red: #B91C1C;
+    /* --- Neutrals --- */
+    --off-white: #FAFBFC;
+    --white: #FFFFFF;
+    --light-gray: #D9DEE5;
+    --charcoal: #1F2937;
+    --slate-gray: #687280;
+    /* --- Card tint surfaces --- */
+    --tint-note: #F5F6F7;
+    --tint-info: #F0F5FC;
+    --tint-alert: #FEF2F2;
+    --tint-grounded: #E6F0EB;
+    /* --- Interaction states --- */
+    --green-hover: #035A3E;
+    --green-active: #01331F;
+    --focus-ring: rgba(31, 90, 166, 0.45);
+    /* --- Type --- */
+    --font-sans: "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+    --weight-regular: 400;
+    --weight-semibold: 600;
+    --weight-bold: 700;
+    /* --- Spacing (8px base) --- */
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+    /* --- Radius / border / shadow --- */
+    --radius-md: 8px;
+    --card-radius: 0 0 8px 8px;
+    --card-accent-width: 4px;
+    --shadow-card: 0 1px 3px rgba(31, 41, 55, 0.08), 0 1px 2px rgba(31, 41, 55, 0.04);
+  }
+
+  * { box-sizing: border-box; margin: 0; }
+
+  body {
+    font-family: var(--font-sans);
+    font-size: 17px;                 /* PMCS web body scale */
+    line-height: 1.6;
+    background: var(--off-white);
+    color: var(--charcoal);
+  }
+
+  /* --- Header: UH Green with Sand Gold accent rule --- */
+  header {
+    background: var(--uh-green);
+    color: var(--white);
+    padding: var(--space-5) var(--space-6);
+    border-bottom: var(--card-accent-width) solid var(--sand-gold);
+  }
+  header h1 {
+    font-size: 30px;                 /* PMCS web slide-title scale */
+    font-weight: var(--weight-bold);
+    letter-spacing: -0.01em;
+  }
+  header p {
+    font-size: 14px;
+    font-weight: var(--weight-regular);
+    color: rgba(255, 255, 255, 0.85);
+    margin-top: var(--space-2);
+  }
+
+  main {
+    max-width: 960px;                /* PMCS fixed content column */
+    margin: var(--space-6) auto;
+    padding: 0 var(--space-4);
+  }
+
+  /* --- Ask row --- */
+  .ask-row { display: flex; gap: var(--space-3); }
+  #question {
+    flex: 1;
+    padding: var(--space-3) var(--space-4);
+    font-family: inherit;
+    font-size: 17px;
+    color: var(--charcoal);
+    background: var(--white);
+    border: 1px solid var(--light-gray);
+    border-radius: var(--radius-md);
+  }
+  #question:focus {
+    outline: none;
+    border-color: var(--research-blue);
+    box-shadow: 0 0 0 3px var(--focus-ring);
+  }
+  /* --- Button: PMCS primary (UH Green fill) --- */
+  #ask {
+    padding: var(--space-3) var(--space-5);
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: var(--weight-semibold);
+    color: var(--white);
+    background: var(--uh-green);
+    border: 0;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background 140ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  #ask:hover { background: var(--green-hover); }
+  #ask:active { background: var(--green-active); }
+  #ask:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus-ring); }
+  #ask:disabled { background: var(--slate-gray); cursor: wait; }
+
+  /* --- Cards: flat top, top-accent border, rounded bottom --- */
+  .card {
+    background: var(--white);
+    border: 1px solid var(--light-gray);
+    border-top: var(--card-accent-width) solid var(--slate-gray);
+    border-radius: var(--card-radius);
+    box-shadow: var(--shadow-card);
+    padding: var(--space-4) var(--space-5);
+    margin-top: var(--space-5);
+  }
+  .card.key { border-top-color: var(--uh-green); }      /* the answer */
+  .card.info { border-top-color: var(--research-blue); } /* the sources */
+
+  /* --- Badge: PMCS tinted pill --- */
+  .badge {
+    display: inline-block;
+    font-size: 14px;
+    font-weight: var(--weight-bold);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: var(--space-2) var(--space-3);
+    border-radius: 999px;
+    margin-bottom: var(--space-3);
+  }
+  .badge.grounded { background: var(--tint-grounded); color: var(--uh-green); }
+  .badge.ungrounded { background: var(--tint-alert); color: var(--alert-red); }
+
+  #answer { font-size: 17px; }
+
+  h2 {
+    color: var(--research-blue);
+    font-size: 14px;
+    font-weight: var(--weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: var(--space-3);
+  }
+
+  /* --- Retrieved passages --- */
+  .passage {
+    border-top: 1px solid var(--light-gray);
+    padding: var(--space-3) 0;
+  }
+  .passage:first-of-type { border-top: 0; padding-top: 0; }
+  .passage .meta {
+    font-size: 14px;
+    color: var(--slate-gray);
+    margin-bottom: var(--space-2);
+  }
+  .passage .score {
+    color: var(--sand-gold);
+    font-weight: var(--weight-bold);
+  }
+  .passage pre {
+    white-space: pre-wrap;
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--charcoal);
+  }
+
+  #error {
+    color: var(--alert-red);
+    background: var(--tint-alert);
+    border-radius: var(--radius-md);
+    padding: var(--space-3) var(--space-4);
+    margin-top: var(--space-4);
+    display: none;
+  }
+
+  footer {
+    max-width: 960px;
+    margin: var(--space-6) auto;
+    padding: 0 var(--space-4) var(--space-6);
+    font-size: 14px;
+    color: var(--slate-gray);
+  }
+
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Food-Safety Compliance Assistant</h1>
+  <p>UH M&#257;noa &middot; AI &amp; Computer Science Professional Master&rsquo;s Program &middot; ICS 603 demo &mdash; answers come only from trusted documents</p>
+</header>
+<main>
+  <div class="ask-row">
+    <input id="question" placeholder="e.g. What is the minimum internal temperature for poultry?"
+           maxlength="500" autofocus>
+    <button id="ask">Ask</button>
+  </div>
+  <p id="error"></p>
+
+  <div id="answer-card" class="card key hidden">
+    <span id="badge" class="badge"></span>
+    <p id="answer"></p>
+  </div>
+
+  <div id="sources-card" class="card info hidden">
+    <h2>Sources &mdash; what the model was given</h2>
+    <div id="passages"></div>
+  </div>
+</main>
+<footer>
+  Demo corpus: FDA Food Code-style excerpts + synthetic Pacific Market Cafe SOPs.
+  Grounded answers cite their sources; out-of-corpus questions are declined, not guessed.
+</footer>
+<script>
+  const questionEl = document.getElementById('question');
+  const askBtn = document.getElementById('ask');
+  const errorEl = document.getElementById('error');
+
+  async function ask() {
+    const question = questionEl.value.trim();
+    if (!question) return;
+    askBtn.disabled = true;
+    errorEl.style.display = 'none';
+    try {
+      const res = await fetch('/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question })
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || ('Request failed (' + res.status + ')'));
+      }
+      render(await res.json());
+    } catch (err) {
+      errorEl.textContent = err.message;
+      errorEl.style.display = 'block';
+    } finally {
+      askBtn.disabled = false;
+    }
+  }
+
+  function render(data) {
+    const badge = document.getElementById('badge');
+    badge.textContent = data.grounded ? 'grounded ✓' : 'not in sources';
+    badge.className = 'badge ' + (data.grounded ? 'grounded' : 'ungrounded');
+    document.getElementById('answer').textContent = data.answer;
+    document.getElementById('answer-card').classList.remove('hidden');
+
+    const wrap = document.getElementById('passages');
+    wrap.innerHTML = '';
+    for (const p of data.passages) {
+      const div = document.createElement('div');
+      div.className = 'passage';
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.innerHTML = '<span class="score">' + p.score.toFixed(2) + '</span> &middot; ';
+      meta.append(p.doc + ' — ' + p.heading);
+      const pre = document.createElement('pre');
+      pre.textContent = p.text;
+      div.append(meta, pre);
+      wrap.append(div);
+    }
+    document.getElementById('sources-card')
+      .classList.toggle('hidden', data.passages.length === 0);
+  }
+
+  askBtn.addEventListener('click', ask);
+  questionEl.addEventListener('keydown', e => { if (e.key === 'Enter') ask(); });
+</script>
+</body>
+</html>

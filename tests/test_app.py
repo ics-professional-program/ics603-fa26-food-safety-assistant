@@ -100,3 +100,11 @@ def test_startup_fails_without_key_outside_replay(monkeypatch):
     with pytest.raises(RuntimeError, match="GEMINI_API_KEY"):
         with TestClient(main.app):
             pass
+
+
+def test_index_serves_branded_page(client):
+    c, _ = client
+    r = c.get("/")
+    assert r.status_code == 200
+    assert "Food-Safety Compliance Assistant" in r.text
+    assert "#024731" in r.text  # UH Green - PMCS branding present
