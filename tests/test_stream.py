@@ -1,6 +1,6 @@
 from foodsafety_rag import stream
 from foodsafety_rag.config import SIMILARITY_THRESHOLD
-from foodsafety_rag.generate import StreamChunk
+from foodsafety_rag.generate import GenerationError, StreamChunk
 from foodsafety_rag.schemas import Citation
 
 
@@ -74,3 +74,33 @@ def test_grounded_empty_citations_fall_back_to_passages(monkeypatch):
     ans = list(stream.stream_events("q?", conn=object()))[-1]
     assert ans["citations"], "empty model citations must fall back to retrieved passages"
     assert ans["citations"][0]["heading"] == "Poultry"
+
+
+def test_generation_error_yields_error_event(monkeypatch):
+    rows = [_passage_row(0.7)]  # high score to take grounded branch
+    calls = {"logged": []}
+
+    # Set up the mocks for embed, log, search
+    monkeypatch.setattr(stream.embed, "embed_text", lambda q: [0.1] * 384)
+    monkeypatch.setattr(stream.store, "log_query",
+                        lambda conn, q: calls["logged"].append(q))
+    monkeypatch.setattr(stream.store, "similarity_search",
+                        lambda conn, vec, top_k: rows)
+
+    # Make stream_grounded raise GenerationError
+    def fake_stream_grounded_raises(question, passages, *, client=None):
+        raise GenerationError("boom")
+
+    monkeypatch.setattr(stream, "stream_grounded", fake_stream_grounded_raises)
+
+    # Collect all events
+    events = list(stream.stream_events("q?", conn=object()))
+
+    # Check that there's an error event
+    error_event = next((e for e in events if e["type"] == "error"), None)
+    assert error_event is not None, "Should have an error event"
+    assert error_event["detail"], "Error event should have non-empty detail"
+
+    # Check that there's NO answer event
+    answer_events = [e for e in events if e["type"] == "answer"]
+    assert not answer_events, "Should have no answer event when generation fails"

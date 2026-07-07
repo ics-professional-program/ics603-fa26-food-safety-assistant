@@ -63,7 +63,7 @@ def stream_events(question: str, *, conn, client=None) -> Iterator[dict]:
             if sc.kind == "token":
                 prose.append(sc.text)
                 yield {"type": "token", "text": sc.text}
-            else:
+            elif sc.kind == "citations":
                 citations = sc.citations
     except GenerationError:
         yield {"type": "error", "detail": _FRIENDLY_GEN_ERROR}
