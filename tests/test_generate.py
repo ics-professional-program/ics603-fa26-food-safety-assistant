@@ -153,3 +153,23 @@ def test_stream_grounded_wraps_sdk_error():
     from foodsafety_rag.generate import GenerationError
     with pytest.raises(GenerationError):
         list(stream_grounded("q?", PASSAGES, client=StubStreamClient(error=ValueError("boom"))))
+
+
+def test_http_options_are_fast_fail():
+    opts = generate._http_options()
+    assert opts.timeout == generate.REQUEST_TIMEOUT_MS
+    assert opts.timeout <= 20_000                    # bounded: a stuck call can't hang for minutes
+    assert opts.retry_options.attempts == generate.REQUEST_RETRY_ATTEMPTS
+    assert 1 <= generate.REQUEST_RETRY_ATTEMPTS <= 3  # cap retries under 503 storms
+
+
+def test_get_client_passes_fast_fail_http_options(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    captured = {}
+    monkeypatch.setattr(generate.genai, "Client",
+                        lambda **kw: captured.update(kw) or "stub-client")
+    client = generate.get_client()
+    assert client == "stub-client"
+    assert captured["api_key"] == "test-key"
+    assert captured["http_options"].timeout == generate.REQUEST_TIMEOUT_MS
+    assert captured["http_options"].retry_options.attempts == generate.REQUEST_RETRY_ATTEMPTS

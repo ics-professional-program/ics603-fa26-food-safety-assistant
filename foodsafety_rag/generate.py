@@ -12,10 +12,29 @@ from collections.abc import Iterator
 from dataclasses import dataclass, field
 
 from google import genai
+from google.genai import types
 from pydantic import BaseModel
 
 from foodsafety_rag.config import GEMINI_MODEL, get_settings
 from foodsafety_rag.schemas import Answer, Citation, Passage
+
+# Fail fast instead of hanging: the free-tier model can return 503 "high demand"
+# for a while, and the SDK's default retry/backoff can stall an interactive
+# request for minutes. Bound the per-request time and cap the retry attempts so a
+# struggling call surfaces the friendly error in seconds, not minutes.
+REQUEST_TIMEOUT_MS = 15_000   # per-request HTTP timeout (also caps a stalled stream)
+REQUEST_RETRY_ATTEMPTS = 2    # total attempts incl. the original (one quick retry)
+
+
+def _http_options() -> types.HttpOptions:
+    return types.HttpOptions(
+        timeout=REQUEST_TIMEOUT_MS,
+        retry_options=types.HttpRetryOptions(
+            attempts=REQUEST_RETRY_ATTEMPTS,
+            initial_delay=0.5,
+            max_delay=2.0,
+        ),
+    )
 
 
 class GenerationError(RuntimeError):
@@ -51,7 +70,7 @@ def get_client() -> genai.Client:
             "GEMINI_API_KEY is not set. Copy .env.example to .env, add your key "
             "(https://aistudio.google.com/apikey), and load it into the environment."
         )
-    return genai.Client(api_key=settings.gemini_api_key)
+    return genai.Client(api_key=settings.gemini_api_key, http_options=_http_options())
 
 
 def ask_model(prompt: str, *, client: genai.Client | None = None) -> str:
