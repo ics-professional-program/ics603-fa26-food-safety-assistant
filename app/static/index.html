@@ -180,6 +180,22 @@
     color: var(--charcoal);
   }
 
+  #trace-card { padding-top: var(--space-3); }
+  .trace-step {
+    display: flex; gap: var(--space-3); align-items: baseline;
+    font-size: 14px; color: var(--slate-gray);
+    padding: var(--space-2) 0; border-top: 1px solid var(--light-gray);
+  }
+  .trace-step:first-child { border-top: 0; }
+  .trace-step .icon { width: 1.1em; flex: none; color: var(--uh-green); }
+  .trace-step.pending .icon { color: var(--slate-gray); }
+  .trace-step .label { font-weight: var(--weight-semibold); color: var(--charcoal);
+    min-width: 5.5rem; flex: none; }
+  .trace-step .detail { flex: 1; }
+  .trace-step .score { color: var(--sand-gold); font-weight: var(--weight-bold); }
+  .trace-cand { display: block; }
+  #answer .cursor { color: var(--slate-gray); }
+
   #error {
     color: var(--alert-red);
     background: var(--tint-alert);
@@ -213,6 +229,11 @@
   </div>
   <p id="error"></p>
 
+  <div id="trace-card" class="card info hidden">
+    <h2>Pipeline &mdash; live</h2>
+    <div id="trace"></div>
+  </div>
+
   <div id="answer-card" class="card key hidden">
     <span id="badge" class="badge"></span>
     <p id="answer"></p>
@@ -231,41 +252,76 @@
   const questionEl = document.getElementById('question');
   const askBtn = document.getElementById('ask');
   const errorEl = document.getElementById('error');
+  const traceCard = document.getElementById('trace-card');
+  const traceEl = document.getElementById('trace');
+  const answerCard = document.getElementById('answer-card');
+  const answerEl = document.getElementById('answer');
+  const badgeEl = document.getElementById('badge');
+  const sourcesCard = document.getElementById('sources-card');
+  const passagesEl = document.getElementById('passages');
 
-  async function ask() {
-    const question = questionEl.value.trim();
-    if (!question) return;
-    askBtn.disabled = true;
+  const LABELS = { embed: 'Embed', retrieve: 'Retrieve', guard: 'Guard', generate: 'Generate' };
+
+  function resetUI() {
     errorEl.style.display = 'none';
-    try {
-      const res = await fetch('/ask', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question })
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.detail || ('Request failed (' + res.status + ')'));
+    traceEl.innerHTML = '';
+    traceCard.classList.remove('hidden');
+    answerCard.classList.add('hidden');
+    sourcesCard.classList.add('hidden');
+    answerEl.textContent = '';
+    passagesEl.innerHTML = '';
+  }
+
+  function upsertStep(step) {
+    let row = document.getElementById('step-' + step);
+    if (!row) {
+      row = document.createElement('div');
+      row.id = 'step-' + step;
+      row.className = 'trace-step pending';
+      row.innerHTML = '<span class="icon">…</span>'
+        + '<span class="label"></span><span class="detail"></span>';
+      row.querySelector('.label').textContent = LABELS[step] || step;
+      traceEl.append(row);
+    }
+    return row;
+  }
+
+  function renderStage(e) {
+    const row = upsertStep(e.step);
+    const detail = row.querySelector('.detail');
+    if (e.step === 'retrieve') {
+      detail.innerHTML = '';
+      for (const c of e.candidates) {
+        const s = document.createElement('span');
+        s.className = 'trace-cand';
+        s.innerHTML = '<span class="score">' + c.score.toFixed(2) + '</span> '
+          + c.doc + ' — ' + c.heading;
+        detail.append(s);
       }
-      render(await res.json());
-    } catch (err) {
-      errorEl.textContent = err.message;
-      errorEl.style.display = 'block';
-    } finally {
-      askBtn.disabled = false;
+    } else if (e.step === 'guard') {
+      const cmp = e.grounded ? ' ≥ ' : ' < ';
+      detail.textContent = e.top_score.toFixed(2) + cmp + e.threshold.toFixed(2)
+        + (e.grounded ? ' → grounded' : ' → not in sources');
+    } else if (e.step === 'embed') {
+      detail.textContent = 'question → vector · ' + e.detail
+        + (e.elapsed_ms != null ? ' · ' + e.elapsed_ms + 'ms' : '');
+    } else if (e.step === 'generate') {
+      detail.textContent = e.status === 'start' ? 'asking Gemini…'
+        : 'answer ready' + (e.elapsed_ms != null ? ' · ' + e.elapsed_ms + 'ms' : '');
+    }
+    if (e.status !== 'start') {
+      row.classList.remove('pending');
+      row.querySelector('.icon').textContent = '✓';
     }
   }
 
-  function render(data) {
-    const badge = document.getElementById('badge');
-    badge.textContent = data.grounded ? 'grounded ✓' : 'not in sources';
-    badge.className = 'badge ' + (data.grounded ? 'grounded' : 'ungrounded');
-    document.getElementById('answer').textContent = data.answer;
-    document.getElementById('answer-card').classList.remove('hidden');
-
-    const wrap = document.getElementById('passages');
-    wrap.innerHTML = '';
-    for (const p of data.passages) {
+  function renderAnswer(a) {
+    answerEl.textContent = a.answer;
+    badgeEl.textContent = a.grounded ? 'grounded ✓' : 'not in sources';
+    badgeEl.className = 'badge ' + (a.grounded ? 'grounded' : 'ungrounded');
+    answerCard.classList.remove('hidden');
+    passagesEl.innerHTML = '';
+    for (const p of a.passages) {
       const div = document.createElement('div');
       div.className = 'passage';
       const meta = document.createElement('div');
@@ -275,10 +331,59 @@
       const pre = document.createElement('pre');
       pre.textContent = p.text;
       div.append(meta, pre);
-      wrap.append(div);
+      passagesEl.append(div);
     }
-    document.getElementById('sources-card')
-      .classList.toggle('hidden', data.passages.length === 0);
+    sourcesCard.classList.toggle('hidden', a.passages.length === 0);
+  }
+
+  function handleEvent(type, data) {
+    if (type === 'stage') renderStage(data);
+    else if (type === 'token') { answerCard.classList.remove('hidden');
+      answerEl.textContent += data.text; }
+    else if (type === 'answer') renderAnswer(data);
+    else if (type === 'error') { errorEl.textContent = data.detail;
+      errorEl.style.display = 'block'; }
+  }
+
+  async function ask() {
+    const question = questionEl.value.trim();
+    if (!question) return;
+    askBtn.disabled = true;
+    resetUI();
+    try {
+      const res = await fetch('/ask/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question })
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || ('Request failed (' + res.status + ')'));
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const frames = buf.split('\n\n');
+        buf = frames.pop();                       // keep the trailing partial frame
+        for (const frame of frames) {
+          let type = null, data = null;
+          for (const line of frame.split('\n')) {
+            if (line.startsWith('event: ')) type = line.slice(7);
+            else if (line.startsWith('data: ')) data = JSON.parse(line.slice(6));
+          }
+          if (type && type !== 'done') handleEvent(type, data);
+        }
+      }
+    } catch (err) {
+      errorEl.textContent = err.message;
+      errorEl.style.display = 'block';
+    } finally {
+      askBtn.disabled = false;
+    }
   }
 
   askBtn.addEventListener('click', ask);

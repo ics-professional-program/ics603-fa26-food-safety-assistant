@@ -185,6 +185,14 @@ def test_ask_stream_unexpected_error_emits_friendly_error(client, monkeypatch):
     assert "Traceback" not in r.text
 
 
+def test_index_has_streaming_trace_ui(client):
+    c, _ = client
+    html = c.get("/").text
+    assert "/ask/stream" in html          # UI targets the streaming endpoint
+    assert 'id="trace"' in html           # trace panel container present
+    assert "getReader" in html            # reads the stream incrementally
+
+
 def test_ask_stream_replay_streams_fixture(tmp_path, monkeypatch):
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     monkeypatch.setenv("REPLAY", "1")
