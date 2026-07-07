@@ -14,7 +14,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 
 from foodsafety_rag import pipeline, store, stream
-from foodsafety_rag.config import get_settings
+from foodsafety_rag.config import SIMILARITY_THRESHOLD, get_settings
 from foodsafety_rag.generate import GenerationError
 from foodsafety_rag.schemas import Answer, AskRequest
 
@@ -27,6 +27,37 @@ SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
 def _sse(event: dict) -> str:
     data = {k: v for k, v in event.items() if k != 'type'}
     return f"event: {event['type']}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+def _replay_stream(question: str):
+    fixture = app.state.fixtures.get(_normalize(question))
+    if fixture is None:
+        yield _sse({"type": "stage", "step": "guard", "status": "done",
+                    "top_score": 0.0, "threshold": SIMILARITY_THRESHOLD,
+                    "grounded": False})
+        for piece in stream._chunk_text(pipeline.NOT_FOUND_ANSWER):
+            yield _sse({"type": "token", "text": piece})
+        yield _sse({"type": "answer", "question": question,
+                    "answer": pipeline.NOT_FOUND_ANSWER, "grounded": False,
+                    "citations": [], "passages": []})
+        yield _sse({"type": "done"})
+        return
+
+    yield _sse({"type": "stage", "step": "embed", "status": "done",
+                "detail": "384-dim (replayed)", "elapsed_ms": 0})
+    yield _sse({"type": "stage", "step": "retrieve", "status": "done",
+                "candidates": [{"doc": p.doc, "heading": p.heading, "score": p.score}
+                               for p in fixture.passages], "elapsed_ms": 0})
+    yield _sse({"type": "stage", "step": "guard", "status": "done",
+                "top_score": fixture.passages[0].score if fixture.passages else 0.0,
+                "threshold": SIMILARITY_THRESHOLD, "grounded": fixture.grounded})
+    if fixture.grounded:
+        yield _sse({"type": "stage", "step": "generate", "status": "start",
+                    "detail": "replaying"})
+    for piece in stream._chunk_text(fixture.answer):
+        yield _sse({"type": "token", "text": piece})
+    yield _sse({"type": "answer", **fixture.model_dump()})
+    yield _sse({"type": "done"})
 
 
 def _normalize(question: str) -> str:
@@ -99,6 +130,10 @@ def ask(request: AskRequest) -> Answer:
 @app.post("/ask/stream")
 def ask_stream(request: AskRequest) -> StreamingResponse:
     settings = get_settings()
+
+    if settings.replay:
+        return StreamingResponse(_replay_stream(request.question),
+                                 media_type="text/event-stream", headers=SSE_HEADERS)
 
     def live():
         try:

@@ -183,3 +183,29 @@ def test_ask_stream_unexpected_error_emits_friendly_error(client, monkeypatch):
     assert any(t == "error" and "try again" in d["detail"].lower() for t, d in events)
     assert events[-1][0] == "done"
     assert "Traceback" not in r.text
+
+
+def test_ask_stream_replay_streams_fixture(tmp_path, monkeypatch):
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.setenv("REPLAY", "1")
+    fixture = Answer(
+        question="What is the minimum internal temperature for poultry?",
+        answer="165°F (74°C) for 15 seconds.", grounded=True)
+    (tmp_path / "poultry.json").write_text(fixture.model_dump_json(), encoding="utf-8")
+    from app import main
+    monkeypatch.setattr(main, "FIXTURES_DIR", tmp_path)
+    with TestClient(main.app) as c:
+        r = c.post("/ask/stream", json={
+            "question": "What is the minimum internal temperature for poultry?"})
+        assert r.status_code == 200
+        events = _parse_sse(r.text)
+        types = [t for t, _ in events]
+        assert "stage" in types and "token" in types
+        answer = next(d for t, d in events if t == "answer")
+        assert answer["answer"] == "165°F (74°C) for 15 seconds."
+        assert answer["grounded"] is True
+        assert types[-1] == "done"
+        # unknown question -> graceful declined answer, still valid stream
+        r2 = c.post("/ask/stream", json={"question": "never captured?"})
+        a2 = next(d for t, d in _parse_sse(r2.text) if t == "answer")
+        assert a2["grounded"] is False
