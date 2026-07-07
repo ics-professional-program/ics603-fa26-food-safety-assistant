@@ -1,0 +1,54 @@
+from foodsafety_rag import store
+from foodsafety_rag.embed import embed_text
+
+# Fixed 3-doc fixture corpus (deterministic retrieval target)
+FIXTURE_DOCS = [
+    ("fda", "Cooking Temperatures", "fda/cook.md", "Poultry",
+     "Poultry\nRaw poultry must reach 165°F (74°C) for 15 seconds."),
+    ("fda", "Holding", "fda/hold.md", "Cold holding",
+     "Cold holding\nTCS foods held cold must stay at 41°F (5°C) or below."),
+    ("sop", "Handwashing", "sop/wash.md", "How to wash",
+     "How to wash\nWash hands with soap and warm water for at least 20 seconds."),
+]
+
+
+def _seed(conn):
+    store.reset_index(conn)
+    for source, title, path, heading, text in FIXTURE_DOCS:
+        doc_id = store.upsert_document(conn, source, title, path)
+        store.insert_chunk(conn, doc_id, heading, text, embed_text(text))
+
+
+def test_schema_tables_exist(db_conn):
+    rows = db_conn.execute(
+        "SELECT table_name FROM information_schema.tables WHERE table_schema='public'"
+    ).fetchall()
+    names = {r[0] for r in rows}
+    assert {"documents", "chunks", "query_log"} <= names
+
+
+def test_upsert_document_is_idempotent(db_conn):
+    store.reset_index(db_conn)
+    id1 = store.upsert_document(db_conn, "fda", "Cooking", "fda/cook.md")
+    id2 = store.upsert_document(db_conn, "fda", "Cooking v2", "fda/cook.md")
+    assert id1 == id2
+    count = db_conn.execute("SELECT count(*) FROM documents").fetchone()[0]
+    assert count == 1
+
+
+def test_similarity_search_returns_scored_rows(db_conn):
+    _seed(db_conn)
+    vec = embed_text("What temperature must chicken be cooked to?")
+    rows = store.similarity_search(db_conn, vec, top_k=3)
+    assert len(rows) == 3
+    assert set(rows[0]) == {"doc", "heading", "text", "score"}
+    assert rows[0]["heading"] == "Poultry"          # best match first
+    assert rows[0]["score"] > rows[-1]["score"]     # descending
+    assert 0.0 < rows[0]["score"] <= 1.0
+
+
+def test_log_query_inserts_row(db_conn):
+    before = db_conn.execute("SELECT count(*) FROM query_log").fetchone()[0]
+    store.log_query(db_conn, "test question?")
+    after = db_conn.execute("SELECT count(*) FROM query_log").fetchone()[0]
+    assert after == before + 1
