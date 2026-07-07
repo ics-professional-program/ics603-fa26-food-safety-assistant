@@ -1,0 +1,38 @@
+{
+  "question": "How long can I take to cool cooked rice?",
+  "answer": "Cooked rice (which is a cooked TCS food) must be cooled from 135°F to 70°F (57°C to 21°C) within 2 hours, and then from 70°F to 41°F (21°C to 5°C) within an additional 4 hours, for a total of 6 hours.",
+  "grounded": true,
+  "citations": [
+    {
+      "doc": "FDA Food Code §3-501 — Holding and Cooling — Cooling cooked food",
+      "heading": "Cooling cooked food",
+      "snippet": "Cooked TCS food, including cooked rice, must be cooled from 135°F to 70°F (57°C to 21°C) within 2 hours, and from 70°F to 41°F (21°C to 5°C) within an additional 4 hours — 6 hours total."
+    }
+  ],
+  "passages": [
+    {
+      "doc": "FDA Food Code §3-501 — Holding and Cooling",
+      "heading": "Cooling cooked food",
+      "text": "Cooling cooked food\nTCS foods held hot must be maintained at 135°F (57°C) or above. Food that\nfalls below 135°F for more than 4 hours must be discarded.\nCooked TCS food, including cooked rice, must be cooled from 135°F to 70°F\n(57°C to 21°C) within 2 hours, and from 70°F to 41°F (21°C to 5°C) within an\nadditional 4 hours — 6 hours total. Use shallow pans, ice baths, or ice\npaddles to speed cooling.",
+      "score": 0.6699138483379441
+    },
+    {
+      "doc": "FDA Food Code §3-501 — Holding and Cooling",
+      "heading": "Date marking",
+      "text": "Date marking\ncooled from 135°F to 70°F\n(57°C to 21°C) within 2 hours, and from 70°F to 41°F (21°C to 5°C) within an\nadditional 4 hours — 6 hours total. Use shallow pans, ice baths, or ice\npaddles to speed cooling.\nReady-to-eat TCS food held longer than 24 hours must be date-marked and\ndiscarded after 7 days when held at 41°F or below (day of preparation counts\nas day 1).",
+      "score": 0.5128865242004395
+    },
+    {
+      "doc": "FDA Food Code §3-501 — Holding and Cooling",
+      "heading": "Hot holding",
+      "text": "Hot holding\nTCS foods held cold must be maintained at 41°F (5°C) or below. Examples\ninclude cut leafy greens, cut tomatoes, cut melons, cooked rice, dairy, and\nraw or cooked meats held for later service.\nTCS foods held hot must be maintained at 135°F (57°C) or above. Food that\nfalls below 135°F for more than 4 hours must be discarded.",
+      "score": 0.41283280176920956
+    },
+    {
+      "doc": "FDA Food Code §3-501 — Holding and Cooling",
+      "heading": "Cold holding",
+      "text": "Cold holding\nTCS foods held cold must be maintained at 41°F (5°C) or below. Examples\ninclude cut leafy greens, cut tomatoes, cut melons, cooked rice, dairy, and\nraw or cooked meats held for later service.",
+      "score": 0.3611939251422882
+    }
+  ]
+}
