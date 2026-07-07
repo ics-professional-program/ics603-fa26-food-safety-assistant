@@ -52,3 +52,25 @@ def test_log_query_inserts_row(db_conn):
     store.log_query(db_conn, "test question?")
     after = db_conn.execute("SELECT count(*) FROM query_log").fetchone()[0]
     assert after == before + 1
+
+
+from foodsafety_rag.config import SIMILARITY_THRESHOLD
+from foodsafety_rag.retrieve import retrieve
+from foodsafety_rag.schemas import Passage
+
+
+def test_retrieve_returns_passages_best_first(db_conn):
+    _seed(db_conn)
+    passages = retrieve("What temperature must chicken be cooked to?",
+                        conn=db_conn, top_k=2)
+    assert len(passages) == 2
+    assert all(isinstance(p, Passage) for p in passages)
+    assert passages[0].heading == "Poultry"
+    assert passages[0].score >= SIMILARITY_THRESHOLD  # on-corpus question clears guard
+
+
+def test_off_corpus_question_falls_below_threshold(db_conn):
+    _seed(db_conn)
+    passages = retrieve("How do I renew my car registration in Hawaii?",
+                        conn=db_conn, top_k=2)
+    assert passages[0].score < SIMILARITY_THRESHOLD  # grounding guard will trip
