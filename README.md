@@ -54,6 +54,15 @@ tests skip if the db container is down).
 Set `REPLAY=1` and start the app: `/ask` serves captured answers from
 `fixtures/`. The notebook has an equivalent captured-response fallback cell.
 
+## Live pipeline view
+
+`POST /ask/stream` returns Server-Sent Events so the web UI can show the
+pipeline running live — each stage (embed → retrieve → grounding guard →
+generate) streams in as it happens, and the answer fills token-by-token.
+`POST /ask` remains the simple one-shot JSON API (same `Answer` contract) for
+scripts, tests, and the contrast demo. Replay mode (`REPLAY=1`) streams from
+captured fixtures, so the live view still works with no key and no DB.
+
 ## Useful scripts
 
 - `scripts/ingest_corpus.py` — (re)build the index. Idempotent.

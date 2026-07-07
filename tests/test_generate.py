@@ -76,3 +76,100 @@ def test_gemini_failure_raises_generation_error():
         generate.ask_model("hi", client=client)
     with pytest.raises(generate.GenerationError):
         generate.answer_question("hi", PASSAGES, client=client)
+
+
+from types import SimpleNamespace
+
+from foodsafety_rag.generate import (
+    SOURCES_MARKER,
+    StreamChunk,
+    stream_grounded,
+)
+
+
+class StubStreamModels:
+    def __init__(self, pieces, error=None):
+        self._pieces = pieces
+        self._error = error
+        self.last_kwargs = None
+
+    def generate_content_stream(self, **kwargs):
+        self.last_kwargs = kwargs
+        if self._error:
+            raise self._error
+        for p in self._pieces:
+            yield SimpleNamespace(text=p)
+
+
+class StubStreamClient:
+    def __init__(self, pieces=None, error=None):
+        self.models = StubStreamModels(pieces or [], error)
+
+
+def _run(pieces=None, error=None):
+    client = StubStreamClient(pieces, error)
+    chunks = list(stream_grounded("q?", PASSAGES, client=client))
+    return client, chunks
+
+
+def test_stream_grounded_yields_prose_tokens_then_citations():
+    pieces = [
+        "Poultry must reach ",
+        "165°F (74°C).\n",
+        SOURCES_MARKER + "\n",
+        '[{"doc": "FDA Food Code §3-401 — Cooking Temperatures", '
+        '"heading": "Poultry and stuffed foods", "snippet": "...165°F..."}]',
+    ]
+    client, chunks = _run(pieces)
+    tokens = [c for c in chunks if c.kind == "token"]
+    cites = [c for c in chunks if c.kind == "citations"]
+    prose = "".join(c.text for c in tokens)
+    assert "Poultry must reach 165°F (74°C)." in prose
+    assert SOURCES_MARKER not in prose          # marker never leaks into prose
+    assert "doc" not in prose                   # citation JSON never leaks into prose
+    assert len(cites) == 1                       # exactly one citations chunk, last
+    assert chunks[-1].kind == "citations"
+    assert cites[0].citations[0].heading == "Poultry and stuffed foods"
+    assert client.models.last_kwargs["model"] == "gemini-flash-latest"
+
+
+def test_stream_grounded_malformed_tail_yields_empty_citations():
+    client, chunks = _run(["Some answer.\n", SOURCES_MARKER + "\nnot valid json"])
+    cites = [c for c in chunks if c.kind == "citations"]
+    assert cites[0].citations == []             # graceful: caller falls back to passages
+    prose = "".join(c.text for c in chunks if c.kind == "token")
+    assert "Some answer." in prose
+
+
+def test_stream_grounded_no_marker_emits_all_prose():
+    client, chunks = _run(["Just prose, ", "no marker here."])
+    prose = "".join(c.text for c in chunks if c.kind == "token")
+    assert prose.strip() == "Just prose, no marker here."
+    assert chunks[-1].kind == "citations" and chunks[-1].citations == []
+
+
+def test_stream_grounded_wraps_sdk_error():
+    import pytest
+    from foodsafety_rag.generate import GenerationError
+    with pytest.raises(GenerationError):
+        list(stream_grounded("q?", PASSAGES, client=StubStreamClient(error=ValueError("boom"))))
+
+
+def test_http_options_are_fast_fail():
+    opts = generate._http_options()
+    assert opts.timeout == generate.REQUEST_TIMEOUT_MS
+    assert opts.timeout <= 20_000                    # bounded: a stuck call can't hang for minutes
+    assert opts.retry_options.attempts == generate.REQUEST_RETRY_ATTEMPTS
+    assert 1 <= generate.REQUEST_RETRY_ATTEMPTS <= 3  # cap retries under 503 storms
+
+
+def test_get_client_passes_fast_fail_http_options(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    captured = {}
+    monkeypatch.setattr(generate.genai, "Client",
+                        lambda **kw: captured.update(kw) or "stub-client")
+    client = generate.get_client()
+    assert client == "stub-client"
+    assert captured["api_key"] == "test-key"
+    assert captured["http_options"].timeout == generate.REQUEST_TIMEOUT_MS
+    assert captured["http_options"].retry_options.attempts == generate.REQUEST_RETRY_ATTEMPTS
