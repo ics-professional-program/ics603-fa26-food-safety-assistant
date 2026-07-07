@@ -109,6 +109,10 @@ def ask_stream(request: AskRequest) -> StreamingResponse:
             yield _sse({"type": "error",
                         "detail": "Database unavailable. Is the pgvector container "
                                   "running? Start it with: docker compose up -d db"})
-        yield _sse({"type": "done"})
+        except Exception:
+            yield _sse({"type": "error",
+                        "detail": "The request failed. Please try again in a moment."})
+        finally:
+            yield _sse({"type": "done"})
 
     return StreamingResponse(live(), media_type="text/event-stream", headers=SSE_HEADERS)

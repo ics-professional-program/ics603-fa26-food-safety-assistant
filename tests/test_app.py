@@ -166,3 +166,20 @@ def test_ask_stream_db_down_emits_error_frame(client, monkeypatch):
     events = _parse_sse(r.text)
     assert any(t == "error" and "docker compose" in d["detail"] for t, d in events)
     assert events[-1][0] == "done"
+
+
+def test_ask_stream_unexpected_error_emits_friendly_error(client, monkeypatch):
+    c, main = client
+    monkeypatch.setattr(main.store, "get_conn", lambda url: FakeConn())
+
+    def boom(q, *, conn, client=None):
+        raise ValueError("kaboom")
+        yield  # make it a generator
+
+    monkeypatch.setattr(main.stream, "stream_events", boom)
+    r = c.post("/ask/stream", json={"question": "q?"})
+    assert r.status_code == 200
+    events = _parse_sse(r.text)
+    assert any(t == "error" and "try again" in d["detail"].lower() for t, d in events)
+    assert events[-1][0] == "done"
+    assert "Traceback" not in r.text
