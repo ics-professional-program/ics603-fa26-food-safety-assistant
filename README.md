@@ -1,4 +1,77 @@
 # ICS 603 — Food-Safety Compliance Assistant
 
-RAG grounded-Q&A demo app for ICS 603 (Fall 2026). Under construction — see
-the module-map table and run instructions added at the end of the build.
+A Retrieval-Augmented Generation (RAG) grounded-Q&A demo app for ICS 603
+(Fall 2026). Staff ask plain-language food-safety questions; the app answers
+**only** from a trusted corpus (FDA Food Code-style excerpts + synthetic
+Pacific Market Cafe SOPs) and shows the source passages it used. When the
+corpus doesn't cover a question, it declines instead of guessing.
+
+This is the course's north-star reference architecture: the capstone project
+is your own version of this same pattern.
+
+## The codebase IS the module map
+
+| File | Course module | What it teaches |
+|---|---|---|
+| `foodsafety_rag/schemas.py` | M4/M6 | Pydantic models — structure over vibes |
+| `foodsafety_rag/generate.py` | M4 | Calling an LLM API (Gemini) with structured output |
+| `app/main.py` + `app/static/` | M4 | FastAPI service + minimal UI |
+| `foodsafety_rag/store.py` | M7 + M8 | SQL + vectors in ONE Postgres (pgvector) |
+| `foodsafety_rag/embed.py` | M8 | Local sentence-transformer embeddings |
+| `foodsafety_rag/ingest.py`, `retrieve.py` | M8 | Chunking and top-k retrieval |
+| `foodsafety_rag/pipeline.py` | M8 | The grounding guard — decline, don't bluff |
+| `Dockerfile`, `docker-compose.yml` | Deployment | Docker → Jetstream |
+| `notebooks/first_llm_call.ipynb` | 1.3 | Your first LLM call |
+
+## Quick start (Docker)
+
+```bash
+cp .env.example .env          # add your GEMINI_API_KEY (aistudio.google.com/apikey)
+docker compose up -d --build
+docker compose exec app python scripts/ingest_corpus.py
+# open http://localhost:8000
+```
+
+If host port 8000 is already in use, set `APP_PORT`, e.g.
+`APP_PORT=8020 docker compose up -d --build` and open http://localhost:8020.
+
+## Local development (uv)
+
+```bash
+uv venv                                    # create .venv
+uv pip install -e ".[dev]"                 # install package + dev tools
+docker compose up -d db                    # Postgres + pgvector
+set -a; . ./.env; set +a                   # load GEMINI_API_KEY into the shell
+.venv/bin/python scripts/ingest_corpus.py  # build the index
+.venv/bin/python -m uvicorn app.main:app --port 8000
+```
+
+Tests: `.venv/bin/python -m pytest` (Gemini is always mocked; store/retrieve
+tests skip if the db container is down).
+
+## Class-demo fallback (no key, no network)
+
+Set `REPLAY=1` and start the app: `/ask` serves captured answers from
+`fixtures/`. The notebook has an equivalent captured-response fallback cell.
+
+## Useful scripts
+
+- `scripts/ingest_corpus.py` — (re)build the index. Idempotent.
+- `scripts/contrast.py "your question"` — plain Gemini vs grounded pipeline.
+- `scripts/capture_fixtures.py` — refresh the replay fixtures (set `ASK_URL`
+  if the app is not on port 8000).
+
+## Branding
+
+The web UI is styled with the UH Mānoa PMCS design system, vendored as the
+`skills/design-system` submodule
+([`skill.design-system`](https://github.com/ics-professional-program/skill.design-system)).
+Its brand tokens (colors, Helvetica Neue type, spacing, card/badge patterns)
+are inlined into `app/static/index.html` — no build step, no external CDN.
+
+## Notes
+
+- Embeddings are local (`all-MiniLM-L6-v2`, 384-dim) — only generation needs
+  the `GEMINI_API_KEY`. The key lives in `.env` (gitignored), never in code.
+- Deployment target: Jetstream (Oct 27–29 course block). This repo is
+  container-ready; no live deployment yet.
