@@ -147,7 +147,9 @@ def ask_stream(request: AskRequest) -> StreamingResponse:
         except Exception:
             yield _sse({"type": "error",
                         "detail": "The request failed. Please try again in a moment."})
-        finally:
+        else:
             yield _sse({"type": "done"})
+            return
+        yield _sse({"type": "done"})
 
     return StreamingResponse(live(), media_type="text/event-stream", headers=SSE_HEADERS)
