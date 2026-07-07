@@ -194,7 +194,6 @@
   .trace-step .detail { flex: 1; }
   .trace-step .score { color: var(--sand-gold); font-weight: var(--weight-bold); }
   .trace-cand { display: block; }
-  #answer .cursor { color: var(--slate-gray); }
 
   #error {
     color: var(--alert-red);
@@ -294,8 +293,10 @@
       for (const c of e.candidates) {
         const s = document.createElement('span');
         s.className = 'trace-cand';
-        s.innerHTML = '<span class="score">' + c.score.toFixed(2) + '</span> '
-          + c.doc + ' — ' + c.heading;
+        const sc = document.createElement('span');
+        sc.className = 'score';
+        sc.textContent = c.score.toFixed(2);
+        s.append(sc, document.createTextNode(' ' + c.doc + ' — ' + c.heading));
         detail.append(s);
       }
     } else if (e.step === 'guard') {
@@ -372,12 +373,13 @@
         for (const frame of frames) {
           let type = null, data = null;
           for (const line of frame.split('\n')) {
-            if (line.startsWith('event: ')) type = line.slice(7);
-            else if (line.startsWith('data: ')) data = JSON.parse(line.slice(6));
+            if (line.startsWith('event: ')) type = line.slice(7).trimEnd();
+            else if (line.startsWith('data: ')) data = JSON.parse(line.slice(6).trim());
           }
           if (type && type !== 'done') handleEvent(type, data);
         }
       }
+      decoder.decode();                           // flush any buffered multibyte tail
     } catch (err) {
       errorEl.textContent = err.message;
       errorEl.style.display = 'block';
