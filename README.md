@@ -6,22 +6,29 @@ A Retrieval-Augmented Generation (RAG) grounded-Q&A demo app for ICS 603
 Pacific Market Cafe SOPs) and shows the source passages it used. When the
 corpus doesn't cover a question, it declines instead of guessing.
 
-This is the course's north-star reference architecture: the capstone project
-is your own version of this same pattern.
+This is the course's reference architecture: the capstone project is your own
+version of this same pattern. It is also the fallback application for sessions
+that need a running app before your capstone is finished — 11.1 (add a vector
+column to a real schema), 12.0 (deploy a container stack), and 13.0 (evaluate an
+LLM app).
 
 ## The codebase IS the module map
 
 | File | Course module | What it teaches |
 |---|---|---|
-| `foodsafety_rag/schemas.py` | M4/M6 | Pydantic models — structure over vibes |
+| `foodsafety_rag/schemas.py` | M4 / M8 | Pydantic models — structure over guesswork |
 | `foodsafety_rag/generate.py` | M4 | Calling an LLM API (Gemini) with structured output |
 | `app/main.py` + `app/static/` | M4 | FastAPI service + minimal UI |
-| `foodsafety_rag/store.py` | M7 + M8 | SQL + vectors in ONE Postgres (pgvector) |
-| `foodsafety_rag/embed.py` | M8 | Local sentence-transformer embeddings |
-| `foodsafety_rag/ingest.py`, `retrieve.py` | M8 | Chunking and top-k retrieval |
-| `foodsafety_rag/pipeline.py` | M8 | The grounding guard — decline, don't bluff |
-| `Dockerfile`, `docker-compose.yml` | Deployment | Docker → Jetstream |
+| `tests/` | M6 | Automated tests as the check on generated code |
+| `foodsafety_rag/store.py` | M9 + M11 | SQL + vectors in ONE Postgres (pgvector) |
+| `foodsafety_rag/embed.py` | M11 | Local sentence-transformer embeddings |
+| `foodsafety_rag/ingest.py`, `retrieve.py` | M11 | Chunking and top-k retrieval |
+| `foodsafety_rag/pipeline.py` | M11 | The grounding guard — decline, don't guess |
+| `Dockerfile`, `docker-compose.yml` | M10 + M12 | Containers locally, then Jetstream |
 | `notebooks/first_llm_call.ipynb` | 1.3 | Your first LLM call |
+
+Module numbers follow the Fall 2026 teaching order: M4 LLM APIs, M6 software
+engineering, M9 databases, M10 containers, M11 embeddings/RAG, M12 deployment.
 
 ## Quick start (Docker)
 
