@@ -12,10 +12,30 @@ dependencies = [
     "sentence-transformers>=3.0",
     "psycopg[binary]>=3.2",
     "pgvector>=0.3",
+    # Declared explicitly, although sentence-transformers would install it
+    # anyway, so that the CPU-only source below applies to it.
+    "torch>=2.2",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = ["pytest>=8", "httpx>=0.27", "nbformat>=5.10", "jupyterlab>=4"]
+
+# The default Linux torch wheels on PyPI carry CUDA and are several gigabytes.
+# This app only runs the embedding model on CPU, so on Linux -- which is what
+# the container image is -- torch comes from PyTorch's CPU-only index instead.
+# macOS and Windows wheels on PyPI are already CPU-only and are left alone;
+# that is what the marker does.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = ["foodsafety_rag"]

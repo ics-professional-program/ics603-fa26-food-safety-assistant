@@ -45,16 +45,25 @@ If host port 8000 is already in use, set `APP_PORT`, e.g.
 ## Local development (uv)
 
 ```bash
-uv venv                                    # create .venv
-uv pip install -e ".[dev]"                 # install package + dev tools
+uv sync                                    # create .venv from uv.lock, with dev tools
 docker compose up -d db                    # Postgres + pgvector
 set -a; . ./.env; set +a                   # load GEMINI_API_KEY into the shell
-.venv/bin/python scripts/ingest_corpus.py  # build the index
-.venv/bin/python -m uvicorn app.main:app --port 8000
+uv run python scripts/ingest_corpus.py     # build the index
+uv run uvicorn app.main:app --port 8000
 ```
 
-Tests: `.venv/bin/python -m pytest` (Gemini is always mocked; store/retrieve
-tests skip if the db container is down).
+Tests: `uv run pytest` (Gemini is always mocked; store/retrieve tests skip if
+the db container is down).
+
+`uv sync` installs the exact versions recorded in `uv.lock`, which is the same
+thing the Dockerfile does with `uv sync --locked`. If you change a dependency in
+`pyproject.toml`, run `uv lock` and commit the updated lock file, or the image
+build will fail — that failure is deliberate, and it means the lock file needs
+updating.
+
+On Linux, `torch` is installed from PyTorch's CPU-only index rather than PyPI;
+see the comment in `pyproject.toml`. The default Linux wheels carry CUDA and are
+several gigabytes, and this app only runs the embedding model on CPU.
 
 ## Class-demo fallback (no key, no network)
 

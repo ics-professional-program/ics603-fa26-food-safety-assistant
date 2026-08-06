@@ -1,0 +1,18 @@
+# Keep the build context small and keep credentials and host-built artifacts
+# out of the image. The .venv entry matters most: it is built for the host's
+# operating system and processor and cannot run inside a Linux image.
+.git
+.gitignore
+.env
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+.superpowers/
+dist/
+build/
+docs/
+notebooks/
+tests/
