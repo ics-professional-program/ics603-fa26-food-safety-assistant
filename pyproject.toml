@@ -5,7 +5,7 @@ description = "ICS 603 food-safety compliance assistant - RAG grounded Q&A refer
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "google-genai>=1.0",
+    "openai>=1.60",
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
     "pydantic>=2.7",

@@ -16,12 +16,26 @@ class Passage(BaseModel):
     score: float
 
 
+class Usage(BaseModel):
+    """What one generation call cost, in the two units that meter it: tokens
+    and time. Absent when no model call was made (a declined question) or when
+    the endpoint reports no usage."""
+    prompt_tokens: int
+    completion_tokens: int
+    latency_ms: int
+
+    @property
+    def total_tokens(self) -> int:
+        return self.prompt_tokens + self.completion_tokens
+
+
 class Answer(BaseModel):
     question: str
     answer: str
     grounded: bool
     citations: list[Citation] = Field(default_factory=list)
     passages: list[Passage] = Field(default_factory=list)
+    usage: Usage | None = None
 
 
 class AskRequest(BaseModel):

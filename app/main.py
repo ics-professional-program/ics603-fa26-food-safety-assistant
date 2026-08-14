@@ -13,7 +13,7 @@ import psycopg
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 
-from foodsafety_rag import pipeline, store, stream
+from foodsafety_rag import generate, pipeline, store, stream
 from foodsafety_rag.config import SIMILARITY_THRESHOLD, get_settings
 from foodsafety_rag.generate import GenerationError
 from foodsafety_rag.schemas import Answer, AskRequest
@@ -79,11 +79,8 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     if settings.replay:
         app.state.fixtures = load_fixtures(FIXTURES_DIR)
-    elif not settings.gemini_api_key:
-        raise RuntimeError(
-            "GEMINI_API_KEY is not set. Copy .env.example to .env and add your "
-            "key, or set REPLAY=1 to serve captured answers offline."
-        )
+    else:
+        generate.check_credentials()  # fail at startup, not on the first question
     yield
 
 

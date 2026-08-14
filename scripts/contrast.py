@@ -1,5 +1,6 @@
-"""Contrast demo: the SAME question through (a) plain Gemini with no context,
-and (b) the grounded RAG pipeline. For the 1.3 grounded-vs-ungrounded shots.
+"""Contrast demo: the SAME question through (a) a plain model call with no
+context, and (b) the grounded RAG pipeline. For the 1.3 grounded-vs-ungrounded
+shots.
 
 Run:  python scripts/contrast.py "What is the minimum internal temperature for poultry?"
 """
@@ -22,7 +23,7 @@ def main() -> None:
     print(f"QUESTION: {question}")
     print(bar)
 
-    print("\n--- (a) Plain Gemini - no context, answers from model memory ---\n")
+    print("\n--- (a) Plain model call - no context, answers from model memory ---\n")
     print(ask_model(question))
 
     print("\n--- (b) Grounded pipeline - answers only from trusted documents ---\n")

@@ -11,10 +11,12 @@ def _passage_row(score, heading="Poultry"):
 
 
 def _patch(monkeypatch, rows, stream_chunks=None):
-    calls = {"logged": [], "generated": 0}
+    calls = {"logged": [], "generated": 0, "outcomes": []}
     monkeypatch.setattr(stream.embed, "embed_text", lambda q: [0.1] * 384)
     monkeypatch.setattr(stream.store, "log_query",
-                        lambda conn, q: calls["logged"].append(q))
+                        lambda conn, q: calls["logged"].append(q) or 1)
+    monkeypatch.setattr(stream.store, "log_outcome",
+                        lambda conn, qid, **kw: calls["outcomes"].append(kw))
     monkeypatch.setattr(stream.store, "similarity_search",
                         lambda conn, vec, top_k: rows)
 
@@ -58,7 +60,7 @@ def test_guard_event_reports_score_and_threshold(monkeypatch):
 def test_declined_path_skips_generation(monkeypatch):
     calls = _patch(monkeypatch, [_passage_row(SIMILARITY_THRESHOLD - 0.1)])
     events = list(stream.stream_events("Can I bring my dog in?", conn=object()))
-    assert calls["generated"] == 0                        # NO Gemini call
+    assert calls["generated"] == 0                        # NO model call
     assert not any(e.get("step") == "generate" for e in events)
     assert any(e["type"] == "token" for e in events)      # decline text still streams
     ans = events[-1]
@@ -83,7 +85,8 @@ def test_generation_error_yields_error_event(monkeypatch):
     # Set up the mocks for embed, log, search
     monkeypatch.setattr(stream.embed, "embed_text", lambda q: [0.1] * 384)
     monkeypatch.setattr(stream.store, "log_query",
-                        lambda conn, q: calls["logged"].append(q))
+                        lambda conn, q: calls["logged"].append(q) or 1)
+    monkeypatch.setattr(stream.store, "log_outcome", lambda conn, qid, **kw: None)
     monkeypatch.setattr(stream.store, "similarity_search",
                         lambda conn, vec, top_k: rows)
 

@@ -7,26 +7,27 @@
     {
       "doc": "SOP-03 — Employee Illness Reporting (Pacific Market Cafe)",
       "heading": "Reportable diagnoses",
-      "text": "Reportable diagnoses\nng vomiting, diarrhea, or jaundice must report it to the\nmanager on duty and may not work with food. Employees with vomiting or\ndiarrhea may return only after being symptom-free for at least 48 hours.\nA diagnosis of Norovirus, Salmonella, Shigella, E. coli (STEC), or\nHepatitis A must be reported to the manager, who reports it to the local\nhealth department. These employees are excluded from the establishment.",
-      "score": 0.3347132205963135
+      "text": "Reportable diagnoses\nvomiting, diarrhea, or jaundice must report it to the\nmanager on duty and may not work with food. Employees with vomiting or\ndiarrhea may return only after being symptom-free for at least 48 hours.\nA diagnosis of Norovirus, Salmonella, Shigella, E. coli (STEC), or\nHepatitis A must be reported to the manager, who reports it to the local\nhealth department. These employees are excluded from the establishment.",
+      "score": 0.33138761911951375
     },
     {
       "doc": "FDA Food Code §4-501 — Cleaning and Sanitizing",
       "heading": "Wiping cloths",
       "text": "Wiping cloths\nand utensils in continuous use with TCS food must be\ncleaned and sanitized at least every 4 hours. Surfaces must be washed,\nrinsed, and sanitized — in that order — after each use with raw animal food.\nIn-use wet wiping cloths must be stored in sanitizer solution at the proper\nconcentration between uses, never left on counters.",
-      "score": 0.3173963238360694
+      "score": 0.317396342754364
     },
     {
       "doc": "SOP-03 — Employee Illness Reporting (Pacific Market Cafe)",
       "heading": "Symptoms requiring exclusion",
       "text": "Symptoms requiring exclusion\nEmployees experiencing vomiting, diarrhea, or jaundice must report it to the\nmanager on duty and may not work with food. Employees with vomiting or\ndiarrhea may return only after being symptom-free for at least 48 hours.",
-      "score": 0.3067120313644409
+      "score": 0.30671197175979614
     },
     {
       "doc": "FDA Food Code §2-301 — Handwashing and Personal Hygiene",
       "heading": "When to wash hands",
       "text": "When to wash hands\nFood employees must wash their hands before starting food preparation, after\nhandling raw meat or poultry, after using the restroom, after coughing or\nsneezing, after touching the face or hair, after handling garbage, and after\nany activity that contaminates the hands.",
-      "score": 0.2762451007220095
+      "score": 0.27624504111736825
     }
-  ]
+  ],
+  "usage": null
 }

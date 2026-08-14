@@ -54,6 +54,30 @@ def test_log_query_inserts_row(db_conn):
     assert after == before + 1
 
 
+def test_log_outcome_records_what_the_answer_cost(db_conn):
+    from foodsafety_rag.schemas import Usage
+
+    query_id = store.log_query(db_conn, "what did this cost?")
+    store.log_outcome(db_conn, query_id, grounded=True,
+                      usage=Usage(prompt_tokens=812, completion_tokens=64,
+                                  latency_ms=1250))
+    row = db_conn.execute(
+        "SELECT grounded, prompt_tokens, completion_tokens, latency_ms "
+        "FROM query_log WHERE id = %s", (query_id,)).fetchone()
+    assert row == (True, 812, 64, 1250)
+
+
+def test_declined_question_logs_no_token_cost(db_conn):
+    """The guard stops a declined question before any model call, so the row
+    records the decline with no tokens spent."""
+    query_id = store.log_query(db_conn, "can I bring my dog in?")
+    store.log_outcome(db_conn, query_id, grounded=False)
+    row = db_conn.execute(
+        "SELECT grounded, prompt_tokens, latency_ms FROM query_log WHERE id = %s",
+        (query_id,)).fetchone()
+    assert row == (False, None, None)
+
+
 from foodsafety_rag.config import SIMILARITY_THRESHOLD
 from foodsafety_rag.retrieve import retrieve
 from foodsafety_rag.schemas import Passage

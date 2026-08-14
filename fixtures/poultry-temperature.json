@@ -1,12 +1,12 @@
 {
   "question": "What is the minimum internal temperature for poultry?",
-  "answer": "Raw poultry, including whole or ground chicken, turkey, and duck, must be cooked to a minimum internal temperature of 165°F (74°C) for at least 15 seconds.",
+  "answer": "The minimum internal temperature for raw poultry is **165 °F (74 °C)**, held for at least 15 seconds.",
   "grounded": true,
   "citations": [
     {
-      "doc": "FDA Food Code §3-401 — Cooking Temperatures — Poultry and stuffed foods",
+      "doc": "[1] FDA Food Code §3-401 — Cooking Temperatures — Poultry and stuffed foods",
       "heading": "Poultry and stuffed foods",
-      "snippet": "Raw poultry, including whole or ground chicken, turkey, and duck, must be cooked to a minimum internal temperature of 165°F (74°C) for at least 15 seconds"
+      "snippet": "must be cooked to a minimum internal temperature of 165°F (74°C) for at least 15 seconds"
     }
   ],
   "passages": [
@@ -14,25 +14,30 @@
       "doc": "FDA Food Code §3-401 — Cooking Temperatures",
       "heading": "Poultry and stuffed foods",
       "text": "Poultry and stuffed foods\nRaw poultry, including whole or ground chicken, turkey, and duck, must be\ncooked to a minimum internal temperature of 165°F (74°C) for at least\n15 seconds. The same 165°F standard applies to stuffed foods, stuffing that\ncontains raw meat, and any dish combining raw poultry with other ingredients.",
-      "score": 0.6943922821049534
+      "score": 0.6943921993269576
     },
     {
       "doc": "FDA Food Code §3-401 — Cooking Temperatures",
       "heading": "Ground meats",
-      "text": "Ground meats\nernal temperature of 165°F (74°C) for at least\n15 seconds. The same 165°F standard applies to stuffed foods, stuffing that\ncontains raw meat, and any dish combining raw poultry with other ingredients.\nGround or mechanically tenderized meats such as ground beef and ground pork\nmust reach a minimum internal temperature of 155°F (68°C) for 17 seconds.\nThis also applies to flaked, minced, and injected meats.",
-      "score": 0.6331029753027584
+      "text": "Ground meats\ntemperature of 165°F (74°C) for at least\n15 seconds. The same 165°F standard applies to stuffed foods, stuffing that\ncontains raw meat, and any dish combining raw poultry with other ingredients.\nGround or mechanically tenderized meats such as ground beef and ground pork\nmust reach a minimum internal temperature of 155°F (68°C) for 17 seconds.\nThis also applies to flaked, minced, and injected meats.",
+      "score": 0.6305503657296216
     },
     {
       "doc": "FDA Food Code §3-401 — Cooking Temperatures",
       "heading": "Whole-muscle meats, seafood, and eggs",
-      "text": "Whole-muscle meats, seafood, and eggs\n or mechanically tenderized meats such as ground beef and ground pork\nmust reach a minimum internal temperature of 155°F (68°C) for 17 seconds.\nThis also applies to flaked, minced, and injected meats.\nSeafood, whole-muscle steaks and chops of beef or pork, and raw shell eggs\ncooked for immediate service must reach 145°F (63°C) for 15 seconds. Whole\nbeef or pork roasts may use alternative time-temperature combinations, such\nas 130°F (54°C) held for 112 minutes.",
-      "score": 0.5939277056498714
+      "text": "Whole-muscle meats, seafood, and eggs\nor mechanically tenderized meats such as ground beef and ground pork\nmust reach a minimum internal temperature of 155°F (68°C) for 17 seconds.\nThis also applies to flaked, minced, and injected meats.\nSeafood, whole-muscle steaks and chops of beef or pork, and raw shell eggs\ncooked for immediate service must reach 145°F (63°C) for 15 seconds. Whole\nbeef or pork roasts may use alternative time-temperature combinations, such\nas 130°F (54°C) held for 112 minutes.",
+      "score": 0.5939277652545126
     },
     {
       "doc": "FDA Food Code §3-501 — Holding and Cooling",
       "heading": "Hot holding",
       "text": "Hot holding\nTCS foods held cold must be maintained at 41°F (5°C) or below. Examples\ninclude cut leafy greens, cut tomatoes, cut melons, cooked rice, dairy, and\nraw or cooked meats held for later service.\nTCS foods held hot must be maintained at 135°F (57°C) or above. Food that\nfalls below 135°F for more than 4 hours must be discarded.",
-      "score": 0.498011231659504
+      "score": 0.49801120173864444
     }
-  ]
+  ],
+  "usage": {
+    "prompt_tokens": 633,
+    "completion_tokens": 298,
+    "latency_ms": 2316
+  }
 }

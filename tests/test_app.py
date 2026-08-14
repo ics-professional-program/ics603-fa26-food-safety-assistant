@@ -8,7 +8,7 @@ from foodsafety_rag.schemas import Answer
 
 @pytest.fixture()
 def client(monkeypatch):
-    monkeypatch.setenv("GEMINI_API_KEY", "test-key")  # fake; nothing real is called
+    monkeypatch.setenv("LLM_API_KEY", "test-key")  # fake; nothing real is called
     monkeypatch.delenv("REPLAY", raising=False)
     from app import main
     with TestClient(main.app) as c:
@@ -39,7 +39,8 @@ def test_ask_returns_answer_contract(client, monkeypatch):
     r = c.post("/ask", json={"question": "q?"})
     assert r.status_code == 200
     body = r.json()
-    assert set(body) == {"question", "answer", "grounded", "citations", "passages"}
+    assert set(body) == {"question", "answer", "grounded", "citations", "passages",
+                         "usage"}
     assert body["grounded"] is True
 
 
@@ -61,12 +62,12 @@ def test_db_down_is_503_with_readable_message(client, monkeypatch):
     assert "docker compose" in r.json()["detail"]
 
 
-def test_gemini_error_is_friendly_502(client, monkeypatch):
+def test_generation_error_is_friendly_502(client, monkeypatch):
     c, main = client
     monkeypatch.setattr(main.store, "get_conn", lambda url: FakeConn())
 
     def boom(q, *, conn, client=None):
-        raise GenerationError("Gemini call failed (QuotaError)")
+        raise GenerationError("LLM call failed (QuotaError)")
 
     monkeypatch.setattr(main.pipeline, "grounded_answer", boom)
     r = c.post("/ask", json={"question": "q?"})
@@ -75,7 +76,7 @@ def test_gemini_error_is_friendly_502(client, monkeypatch):
 
 
 def test_replay_mode_serves_fixture(tmp_path, monkeypatch):
-    monkeypatch.delenv("GEMINI_API_KEY", raising=False)  # replay needs no key
+    monkeypatch.delenv("LLM_API_KEY", raising=False)  # replay needs no key
     monkeypatch.setenv("REPLAY", "1")
     fixture = Answer(question="What is the minimum internal temperature for poultry?",
                      answer="165°F (74°C) for 15 seconds.", grounded=True)
@@ -94,10 +95,11 @@ def test_replay_mode_serves_fixture(tmp_path, monkeypatch):
 
 
 def test_startup_fails_without_key_outside_replay(monkeypatch):
-    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    monkeypatch.delenv("LLM_BASE_URL", raising=False)  # -> hosted default, needs a key
     monkeypatch.delenv("REPLAY", raising=False)
     from app import main
-    with pytest.raises(RuntimeError, match="GEMINI_API_KEY"):
+    with pytest.raises(RuntimeError, match="LLM_API_KEY"):
         with TestClient(main.app):
             pass
 
@@ -135,7 +137,7 @@ def test_ask_stream_live_emits_stage_then_answer(client, monkeypatch):
         yield {"type": "stage", "step": "embed", "status": "done", "detail": "384-dim"}
         yield {"type": "token", "text": "165°F."}
         yield {"type": "answer", "question": question, "answer": "165°F.",
-               "grounded": True, "citations": [], "passages": []}
+               "grounded": True, "citations": [], "passages": [], "usage": None}
 
     monkeypatch.setattr(main.stream, "stream_events", fake_events)
     r = c.post("/ask/stream", json={"question": "q?"})
@@ -145,7 +147,8 @@ def test_ask_stream_live_emits_stage_then_answer(client, monkeypatch):
     types = [t for t, _ in events]
     assert types[0] == "stage" and "answer" in types and types[-1] == "done"
     answer = next(d for t, d in events if t == "answer")
-    assert set(answer) == {"question", "answer", "grounded", "citations", "passages"}
+    assert set(answer) == {"question", "answer", "grounded", "citations", "passages",
+                           "usage"}
 
 
 def test_ask_stream_empty_question_is_422(client):
@@ -194,7 +197,7 @@ def test_index_has_streaming_trace_ui(client):
 
 
 def test_ask_stream_replay_streams_fixture(tmp_path, monkeypatch):
-    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
     monkeypatch.setenv("REPLAY", "1")
     fixture = Answer(
         question="What is the minimum internal temperature for poultry?",

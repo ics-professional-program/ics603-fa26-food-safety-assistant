@@ -16,7 +16,7 @@ cells.append(nbf.v4.new_markdown_cell(
 ))
 
 cells.append(nbf.v4.new_code_cell(
-    "# Load the API key from ../.env into the environment (never printed).\n"
+    "# Load the endpoint settings from ../.env into the environment (key never printed).\n"
     "import os\n"
     "from pathlib import Path\n"
     "\n"
@@ -25,7 +25,9 @@ cells.append(nbf.v4.new_code_cell(
     "        key, _, value = line.partition('=')\n"
     "        os.environ.setdefault(key.strip(), value.strip())\n"
     "\n"
-    "print('key loaded:', 'GEMINI_API_KEY' in os.environ)  # True/False only - never the key"
+    "print('endpoint:', os.environ.get('LLM_BASE_URL', '(default)'))\n"
+    "print('model:', os.environ.get('LLM_MODEL', '(default)'))\n"
+    "print('key loaded:', 'LLM_API_KEY' in os.environ)  # True/False only - never the key"
 ))
 
 cells.append(nbf.v4.new_code_cell(
@@ -37,6 +39,41 @@ cells.append(nbf.v4.new_code_cell(
     "response = ask_model('In one sentence, what is retrieval-augmented generation?')\n"
     "Path('../fixtures/first_llm_call.txt').write_text(response, encoding='utf-8')\n"
     "print(response)"
+))
+
+cells.append(nbf.v4.new_markdown_cell(
+    "## What the response object carries\n"
+    "`ask_model` hands back a string, but the endpoint returns more than that: "
+    "how many tokens the call used and why the model stopped. Before running the "
+    "cell, predict the prompt-token count for a question of about ten words."
+))
+
+cells.append(nbf.v4.new_code_cell(
+    "# The same call, one level down - the response object instead of the text.\n"
+    "import time\n"
+    "from foodsafety_rag.config import get_settings\n"
+    "from foodsafety_rag.generate import get_client\n"
+    "\n"
+    "client, model = get_client(), get_settings().llm_model\n"
+    "prompt = 'In one sentence, what is retrieval-augmented generation?'\n"
+    "\n"
+    "start = time.monotonic()\n"
+    "raw = client.chat.completions.create(\n"
+    "    model=model, messages=[{'role': 'user', 'content': prompt}])\n"
+    "elapsed = time.monotonic() - start\n"
+    "\n"
+    "print('prompt tokens:    ', raw.usage.prompt_tokens)\n"
+    "print('completion tokens:', raw.usage.completion_tokens)\n"
+    "print('latency:           %.2f s' % elapsed)\n"
+    "print('finish reason:    ', raw.choices[0].finish_reason)"
+))
+
+cells.append(nbf.v4.new_code_cell(
+    "# How much of that context did we write? Send one word and compare.\n"
+    "brief = client.chat.completions.create(\n"
+    "    model=model, messages=[{'role': 'user', 'content': 'Hi'}], max_tokens=1)\n"
+    "print('prompt tokens for the single word \"Hi\":', brief.usage.prompt_tokens)\n"
+    "# The difference from zero is the chat template the server adds for us."
 ))
 
 cells.append(nbf.v4.new_markdown_cell(
@@ -59,9 +96,9 @@ cells.append(nbf.v4.new_markdown_cell(
     "| | This call |\n"
     "|---|---|\n"
     "| **Input** | One sentence of plain English - no code, no schema. |\n"
-    "| **Context** | None. The model answered from training memory alone - this is exactly what the RAG app changes. |\n"
+    "| **Context** | Not zero. The server wraps our message in a chat template before the model sees it - measure it with the cells above. RAG is how we choose the rest. |\n"
     "| **Output** | Fluent prose. Fluent is not the same as verified. |\n"
-    "| **Cost** | Fractions of a cent (free tier here) - but it meters per token, unlike ordinary function calls. |\n"
+    "| **Cost** | Metered per token, unlike an ordinary function call - and the prompt is charged too, not just the answer. |\n"
     "| **Latency** | ~1-3 seconds - orders of magnitude slower than a normal function call; design around it. |\n"
     "| **Uncertainty** | Re-run the live cell: the wording can change. Same input, different output - ordinary software never does this. |\n\n"
     "The rest of the course wraps this one call in retrieval (M8), structure "

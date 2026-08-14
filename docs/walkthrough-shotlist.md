@@ -15,7 +15,7 @@ Fallback video in case the live demo fails. Record at 1080p; keep it under
    `not in sources` badge, decline text, weak-scored passages. "It refuses
    to bluff. Useful is not the same as correct."
 5. **The contrast** (45s). Terminal: `python scripts/contrast.py "Can I
-   bring my dog into the kitchen?"` — plain Gemini answers anyway; the
+   bring my dog into the kitchen?"` — a plain model call answers anyway; the
    pipeline declines. Split-screen both outputs.
 6. **The map** (30s). Show the README module-map table, then the directory
    tree: "every file here is a module you'll build this semester; the

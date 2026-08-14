@@ -26,7 +26,7 @@ def _chunk_text(text: str) -> list[str]:
 
 
 def stream_events(question: str, *, conn, client=None) -> Iterator[dict]:
-    store.log_query(conn, question)
+    query_id = store.log_query(conn, question)
 
     t = time.monotonic()
     vec = embed.embed_text(question)
@@ -47,17 +47,19 @@ def stream_events(question: str, *, conn, client=None) -> Iterator[dict]:
            "top_score": top, "threshold": SIMILARITY_THRESHOLD, "grounded": grounded}
 
     if not grounded:
+        store.log_outcome(conn, query_id, grounded=False)
         for piece in _chunk_text(NOT_FOUND_ANSWER):
             yield {"type": "token", "text": piece}
         yield {"type": "answer", "question": question, "answer": NOT_FOUND_ANSWER,
                "grounded": False, "citations": [],
-               "passages": [p.model_dump() for p in passages]}
+               "passages": [p.model_dump() for p in passages], "usage": None}
         return
 
     t = time.monotonic()
-    yield {"type": "stage", "step": "generate", "status": "start", "detail": "asking Gemini"}
+    yield {"type": "stage", "step": "generate", "status": "start", "detail": "asking the model"}
     prose: list[str] = []
     citations: list[Citation] = []
+    usage = None
     try:
         for sc in stream_grounded(question, passages, client=client):
             if sc.kind == "token":
@@ -65,6 +67,8 @@ def stream_events(question: str, *, conn, client=None) -> Iterator[dict]:
                 yield {"type": "token", "text": sc.text}
             elif sc.kind == "citations":
                 citations = sc.citations
+            elif sc.kind == "usage":
+                usage = sc.usage
     except GenerationError:
         yield {"type": "error", "detail": _FRIENDLY_GEN_ERROR}
         return
@@ -72,8 +76,13 @@ def stream_events(question: str, *, conn, client=None) -> Iterator[dict]:
     if not citations:  # fall back to the retrieved passages as the evidence
         citations = [Citation(doc=p.doc, heading=p.heading, snippet=p.text[:160])
                      for p in passages]
-    yield {"type": "stage", "step": "generate", "status": "done", "elapsed_ms": _ms(t)}
+    store.log_outcome(conn, query_id, grounded=True, usage=usage)
+    yield {"type": "stage", "step": "generate", "status": "done",
+           "elapsed_ms": _ms(t),
+           **({"prompt_tokens": usage.prompt_tokens,
+               "completion_tokens": usage.completion_tokens} if usage else {})}
     yield {"type": "answer", "question": question, "answer": "".join(prose).strip(),
            "grounded": True,
            "citations": [c.model_dump() for c in citations],
-           "passages": [p.model_dump() for p in passages]}
+           "passages": [p.model_dump() for p in passages],
+           "usage": usage.model_dump() if usage else None}

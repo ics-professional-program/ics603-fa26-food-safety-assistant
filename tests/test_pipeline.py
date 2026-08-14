@@ -10,11 +10,13 @@ def _passage(score):
 
 
 def _patch(monkeypatch, passages, generated=None):
-    calls = {"generate": 0, "logged": []}
+    calls = {"generate": 0, "logged": [], "outcomes": []}
     monkeypatch.setattr(pipeline, "retrieve",
                         lambda question, *, conn, top_k=4: passages)
     monkeypatch.setattr(pipeline.store, "log_query",
-                        lambda conn, q: calls["logged"].append(q))
+                        lambda conn, q: calls["logged"].append(q) or 1)
+    monkeypatch.setattr(pipeline.store, "log_outcome",
+                        lambda conn, qid, **kw: calls["outcomes"].append(kw))
 
     def fake_answer_question(question, psgs, *, client=None):
         calls["generate"] += 1
@@ -24,7 +26,7 @@ def _patch(monkeypatch, passages, generated=None):
     return calls
 
 
-def test_good_retrieval_calls_gemini(monkeypatch):
+def test_good_retrieval_calls_the_model(monkeypatch):
     passages = [_passage(SIMILARITY_THRESHOLD + 0.3)]
     generated = Answer(question="q", answer="165°F for 15 seconds.",
                        grounded=True, passages=passages)
@@ -35,7 +37,7 @@ def test_good_retrieval_calls_gemini(monkeypatch):
     assert calls["logged"] == ["q"]
 
 
-def test_low_similarity_short_circuits_without_gemini(monkeypatch):
+def test_low_similarity_short_circuits_without_calling_the_model(monkeypatch):
     passages = [_passage(SIMILARITY_THRESHOLD - 0.1)]
     calls = _patch(monkeypatch, passages)
     result = pipeline.grounded_answer("Can I bring my dog into the kitchen?",

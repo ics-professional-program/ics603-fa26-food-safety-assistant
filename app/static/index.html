@@ -16,6 +16,8 @@
     --uh-green: #024731;
     --research-blue: #1F5AA6;
     --sand-gold: #EAA000;
+    /* Darkened sand-gold for small text: #EAA000 on white is 2.20:1. */
+    --score-ink: #8A5D00;
     --alert-red: #B91C1C;
     /* --- Neutrals --- */
     --off-white: #FAFBFC;
@@ -131,6 +133,7 @@
     margin-top: var(--space-5);
   }
   .card.key { border-top-color: var(--uh-green); }      /* the answer */
+  .card.key.declined { border-top-color: var(--alert-red); }
   .card.info { border-top-color: var(--research-blue); } /* the sources */
 
   /* --- Badge: PMCS tinted pill --- */
@@ -170,7 +173,7 @@
     margin-bottom: var(--space-2);
   }
   .passage .score {
-    color: var(--sand-gold);
+    color: var(--score-ink);
     font-weight: var(--weight-bold);
   }
   .passage pre {
@@ -189,10 +192,11 @@
   .trace-step:first-child { border-top: 0; }
   .trace-step .icon { width: 1.1em; flex: none; color: var(--uh-green); }
   .trace-step.pending .icon { color: var(--slate-gray); }
+  .trace-step.blocked .icon { color: var(--alert-red); }
   .trace-step .label { font-weight: var(--weight-semibold); color: var(--charcoal);
     min-width: 5.5rem; flex: none; }
   .trace-step .detail { flex: 1; }
-  .trace-step .score { color: var(--sand-gold); font-weight: var(--weight-bold); }
+  .trace-step .score { color: var(--score-ink); font-weight: var(--weight-bold); }
   .trace-cand { display: block; }
 
   #error {
@@ -307,18 +311,24 @@
       detail.textContent = 'question → vector · ' + e.detail
         + (e.elapsed_ms != null ? ' · ' + e.elapsed_ms + 'ms' : '');
     } else if (e.step === 'generate') {
-      detail.textContent = e.status === 'start' ? 'asking Gemini…'
-        : 'answer ready' + (e.elapsed_ms != null ? ' · ' + e.elapsed_ms + 'ms' : '');
+      const tokens = e.prompt_tokens != null
+        ? ' · ' + e.prompt_tokens + ' in / ' + e.completion_tokens + ' out tokens'
+        : '';
+      detail.textContent = e.status === 'start' ? 'asking the model…'
+        : 'answer ready'
+          + (e.elapsed_ms != null ? ' · ' + e.elapsed_ms + 'ms' : '') + tokens;
     }
     if (e.status !== 'start') {
       row.classList.remove('pending');
-      row.querySelector('.icon').textContent = '✓';
+      const blocked = e.step === 'guard' && e.grounded === false;
+      row.classList.toggle('blocked', blocked);
+      row.querySelector('.icon').textContent = blocked ? '✗' : '✓';
     }
   }
 
   function renderAnswer(a) {
     answerEl.textContent = a.answer;
-    badgeEl.textContent = a.grounded ? 'grounded ✓' : 'not in sources';
+    badgeEl.textContent = a.grounded ? 'grounded ✓' : 'not in sources ✗';
     badgeEl.className = 'badge ' + (a.grounded ? 'grounded' : 'ungrounded');
     answerCard.classList.remove('hidden');
     passagesEl.innerHTML = '';

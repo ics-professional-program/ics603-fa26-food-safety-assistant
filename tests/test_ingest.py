@@ -1,6 +1,12 @@
 from pathlib import Path
 
-from foodsafety_rag.ingest import RawChunk, chunk_markdown, load_corpus
+from foodsafety_rag.ingest import (
+    OVERLAP_CHARS,
+    RawChunk,
+    chunk_markdown,
+    load_corpus,
+    overlap_tail,
+)
 
 SAMPLE = """# Sample Rules
 
@@ -33,6 +39,30 @@ def test_second_chunk_has_overlap_from_first():
     # small overlap: tail of section one is carried into section two's text
     assert "section one" in chunks[1].text
     assert "Delta echo foxtrot" in chunks[1].text
+
+
+def test_overlap_tail_never_opens_mid_word():
+    text = "word " * 100                      # far longer than the overlap window
+    assert overlap_tail(text).startswith("word")
+    # a slice landing inside a long word drops the fragment, not the next word
+    text = "x" * (OVERLAP_CHARS + 10) + " keeps this"
+    assert overlap_tail(text) == "keeps this"
+
+
+def test_overlap_tail_keeps_short_text_whole():
+    assert overlap_tail("Short body.") == "Short body."
+
+
+def test_real_corpus_chunks_contain_no_word_fragments():
+    """Every word in a chunk is a whole word from its source document. A chunk
+    built by slicing mid-word introduces a token the document never contained."""
+    corpus = Path(__file__).parent.parent / "corpus"
+    for md_file in sorted(corpus.rglob("*.md")):
+        md = md_file.read_text(encoding="utf-8")
+        for chunk in chunk_markdown(md, source=md_file.parent.name,
+                                    path=md_file.name):
+            invented = set(chunk.text.split()) - set(md.split())
+            assert not invented, f"{md_file.name} / {chunk.heading}: {invented}"
 
 
 def test_load_corpus_reads_real_corpus():

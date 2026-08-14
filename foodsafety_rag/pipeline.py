@@ -19,9 +19,10 @@ NOT_FOUND_ANSWER = (
 
 
 def grounded_answer(question: str, *, conn, client=None) -> Answer:
-    store.log_query(conn, question)
+    query_id = store.log_query(conn, question)
     passages = retrieve(question, conn=conn)
     if not passages or passages[0].score < SIMILARITY_THRESHOLD:
+        store.log_outcome(conn, query_id, grounded=False)
         return Answer(
             question=question,
             answer=NOT_FOUND_ANSWER,
@@ -29,4 +30,6 @@ def grounded_answer(question: str, *, conn, client=None) -> Answer:
             citations=[],
             passages=passages,
         )
-    return answer_question(question, passages, client=client)
+    answer = answer_question(question, passages, client=client)
+    store.log_outcome(conn, query_id, grounded=answer.grounded, usage=answer.usage)
+    return answer
