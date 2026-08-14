@@ -330,6 +330,7 @@
     answerEl.textContent = a.answer;
     badgeEl.textContent = a.grounded ? 'grounded ✓' : 'not in sources ✗';
     badgeEl.className = 'badge ' + (a.grounded ? 'grounded' : 'ungrounded');
+    answerCard.classList.toggle('declined', !a.grounded);
     answerCard.classList.remove('hidden');
     passagesEl.innerHTML = '';
     for (const p of a.passages) {
