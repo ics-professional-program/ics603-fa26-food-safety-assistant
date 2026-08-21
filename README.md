@@ -17,7 +17,8 @@ LLM app).
 | File | Course module | What it teaches |
 |---|---|---|
 | `foodsafety_rag/schemas.py` | M4 / M8 | Pydantic models — structure over guesswork |
-| `foodsafety_rag/generate.py` | M4 | Calling an LLM API (OpenAI-compatible) with structured output |
+| `foodsafety_rag/agent.py` | M4 / M6 | Typed Pydantic AI agent, provider selection, citation validation, and bounded retry |
+| `foodsafety_rag/generate.py` | M4 | Typed generation plus intentionally low-level OpenAI-compatible raw and streaming calls |
 | `app/main.py` + `app/static/` | M4 | FastAPI service + minimal UI |
 | `tests/` | M6 | Automated tests as the check on generated code |
 | `foodsafety_rag/store.py` | M9 + M11 | SQL + vectors in ONE Postgres (pgvector) |
@@ -34,7 +35,7 @@ engineering, M9 databases, M10 containers, M11 embeddings/RAG, M12 deployment.
 ## Quick start (Docker)
 
 ```bash
-cp .env.example .env          # set LLM_BASE_URL / LLM_MODEL / LLM_API_KEY
+cp .env.example .env          # select the provider, model, endpoint, and credential
 docker compose up -d --build
 docker compose exec app python scripts/ingest_corpus.py
 # open http://localhost:8000
@@ -43,22 +44,36 @@ docker compose exec app python scripts/ingest_corpus.py
 If host port 8000 is already in use, set `APP_PORT`, e.g.
 `APP_PORT=8020 docker compose up -d --build` and open http://localhost:8020.
 
-## The LLM endpoint
+## The LLM provider
 
-Generation goes to any **OpenAI-compatible** endpoint, set by three environment
-variables in `.env`:
+The structured `/ask` path uses Pydantic AI. Set its provider and model in `.env`:
 
 | Variable | What it is |
 |---|---|
+| `LLM_PROVIDER` | `course`, `openai`, `anthropic`, or `google-cloud` |
 | `LLM_BASE_URL` | The API base, e.g. `https://llm.jetstream-cloud.org/api` |
 | `LLM_MODEL` | The model id as that server lists it, e.g. `gpt-oss-120b` |
-| `LLM_API_KEY` | The key for that endpoint (omit for a server on localhost) |
+| `LLM_API_KEY` | The course/OpenAI-compatible endpoint key (omit only for localhost) |
 
 The course endpoint is Jetstream's Open WebUI, whose OpenAI-compatible API lives
 under `/api` (so `/api/chat/completions`, `/api/models`). The same code runs
 against a local model server (LM Studio, Ollama, vLLM) or api.openai.com by
-changing only these three values — `GET {LLM_BASE_URL}/models` lists what a
-given server will accept as `LLM_MODEL`.
+using `LLM_PROVIDER=course` and changing the endpoint settings —
+`GET {LLM_BASE_URL}/models` lists what a given server will accept as `LLM_MODEL`.
+The optional OpenAI and Anthropic adapters use their normal `OPENAI_API_KEY` and
+`ANTHROPIC_API_KEY`; Google Cloud uses its documented application-default or
+service-account credentials.
+
+The early `ask_model()` notebook and the true token-streaming implementation
+intentionally retain the raw OpenAI SDK so students can compare the lower-level
+protocol with the typed agent. With `LLM_PROVIDER=course`, `/ask/stream` uses that
+raw streaming path. With an optional provider, it uses the typed Pydantic AI path,
+validates the complete answer, and then sends word-sized UI chunks. `/ask` always
+uses the typed provider-independent path.
+
+Provider configuration is read when the application process imports the shared
+agent. Restart Uvicorn or the container after changing `.env`; changing variables
+inside an already-running process does not replace that agent's model.
 
 Note for the Docker path: `localhost` inside the app container is the container
 itself, not your laptop. A model server running on your machine is reachable as
@@ -76,6 +91,11 @@ uv run uvicorn app.main:app --port 8000
 
 Tests: `uv run pytest` (the LLM is always mocked; store/retrieve tests skip if
 the db container is down).
+
+The demo's `/ask` route is deliberately a regular `def`: FastAPI runs it in a
+threadpool, where the synchronous retrieval pipeline and `agent.run_sync()` are
+safe. The smaller 4.3 starter instead teaches an `async def` route that awaits
+`agent.run()`. Do not call `run_sync()` from inside an async route.
 
 `uv sync` installs the exact versions recorded in `uv.lock`, which is the same
 thing the Dockerfile does with `uv sync --locked`. If you change a dependency in

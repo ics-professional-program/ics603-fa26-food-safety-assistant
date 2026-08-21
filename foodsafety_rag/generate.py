@@ -1,23 +1,24 @@
-"""LLM generation over an OpenAI-compatible endpoint (course module M4).
+"""LLM generation examples (course module M4).
 
 Two entry points:
 - ask_model():        plain, ungrounded call (the 1.3 notebook + contrast script)
-- answer_question():  grounded call over retrieved passages, structured output
+- answer_question():  grounded Pydantic AI call with validated structured output
 
 The endpoint, model, and key are read only from the environment, so the same
-code runs against the course-provided server, a local model server (LM Studio,
-Ollama, vLLM), or api.openai.com. Tests always pass a stub client.
+raw SDK examples run against the course-provided server, a local model server
+(LM Studio, Ollama, vLLM), or api.openai.com. The structured path selects its
+provider in ``foodsafety_rag.agent``.
 """
 
 import json
 import time
 from collections.abc import Iterator
 from dataclasses import dataclass, field
-from urllib.parse import urlparse
 
 from openai import OpenAI
-from pydantic import BaseModel
+from pydantic_ai import ModelAPIError, UnexpectedModelBehavior
 
+from foodsafety_rag.agent import food_safety_agent, is_local_url
 from foodsafety_rag.config import get_settings
 from foodsafety_rag.schemas import Answer, Citation, Passage, Usage
 
@@ -28,19 +29,8 @@ from foodsafety_rag.schemas import Answer, Citation, Passage, Usage
 REQUEST_TIMEOUT_S = 90.0     # per-request HTTP timeout (also caps a stalled stream)
 REQUEST_MAX_RETRIES = 1      # retries after the original attempt (one quick retry)
 
-# Servers on this machine have no authentication to configure.
-LOCAL_HOSTS = ("localhost", "127.0.0.1", "0.0.0.0", "::1")
-
-
 class GenerationError(RuntimeError):
     """Raised when the model call fails; the API layer maps it to a friendly 502."""
-
-
-class ModelAnswer(BaseModel):
-    """The structured response schema the model fills in (JSON-schema mode)."""
-    answer: str
-    supported: bool
-    citations: list[Citation]
 
 
 GROUNDED_PROMPT = """\
@@ -59,44 +49,21 @@ Question: {question}
 """
 
 
-def _is_local(base_url: str) -> bool:
-    return (urlparse(base_url).hostname or "") in LOCAL_HOSTS
-
-
-def _strict_schema(model: type[BaseModel]) -> dict:
-    """JSON Schema in the shape strict structured-output mode expects: every
-    object closed to extra keys. Local servers are lenient about this; hosted
-    OpenAI is not."""
-    schema = model.model_json_schema()
-
-    def close(node) -> None:
-        if isinstance(node, dict):
-            if node.get("type") == "object":
-                node["additionalProperties"] = False
-            for value in node.values():
-                close(value)
-        elif isinstance(node, list):
-            for item in node:
-                close(item)
-
-    close(schema)
-    return schema
-
-
-def check_credentials() -> None:
-    """Raise if the configured endpoint needs a key we do not have."""
-    settings = get_settings()
-    if not settings.llm_api_key and not _is_local(settings.llm_base_url):
-        raise RuntimeError(
-            f"LLM_API_KEY is not set, and {settings.llm_base_url} is not a local "
-            "server. Copy .env.example to .env, add the key for your endpoint, "
-            "and load it into the environment."
-        )
-
-
 def get_client() -> OpenAI:
-    check_credentials()
+    """Build the raw OpenAI-compatible client used by the early and stream demos."""
+
     settings = get_settings()
+    if settings.llm_provider != "course":
+        raise RuntimeError(
+            "The raw SDK and streaming examples require LLM_PROVIDER=course. "
+            "The structured /ask path supports all configured providers."
+        )
+    if not settings.llm_api_key:
+        if not is_local_url(settings.llm_base_url):
+            raise RuntimeError(
+                f"LLM_API_KEY is not set, and {settings.llm_base_url} is not a "
+                "local server. Add the course or endpoint key to .env."
+            )
     return OpenAI(
         base_url=settings.llm_base_url,
         # A local server does not authenticate, but the client still wants a value.
@@ -138,35 +105,33 @@ def _passage_block(passages: list[Passage]) -> str:
 
 
 def answer_question(question: str, passages: list[Passage],
-                    *, client: OpenAI | None = None) -> Answer:
-    """Grounded call: passages + question -> structured Answer."""
-    client = client or get_client()
+                    *, agent=food_safety_agent) -> Answer:
+    """Grounded call: passages + question -> Pydantic-validated Answer."""
+
     prompt = GROUNDED_PROMPT.format(passages=_passage_block(passages), question=question)
     started = time.monotonic()
     try:
-        response = client.chat.completions.create(
-            model=get_settings().llm_model,
-            messages=[{"role": "user", "content": prompt}],
-            response_format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "model_answer",
-                    "strict": True,
-                    "schema": _strict_schema(ModelAnswer),
-                },
-            },
-        )
-        parsed = ModelAnswer.model_validate_json(
-            response.choices[0].message.content or "")
-    except Exception as exc:
+        result = agent.run_sync(prompt, deps=passages)
+    except (ModelAPIError, UnexpectedModelBehavior) as exc:
         raise GenerationError(f"LLM call failed ({type(exc).__name__})") from exc
+
+    run_usage = result.usage
+    usage = None
+    if run_usage.input_tokens or run_usage.output_tokens:
+        usage = Usage(
+            prompt_tokens=run_usage.input_tokens or 0,
+            completion_tokens=run_usage.output_tokens or 0,
+            latency_ms=int((time.monotonic() - started) * 1000),
+        )
+
+    parsed = result.output
     return Answer(
         question=question,
         answer=parsed.answer,
         grounded=parsed.supported,
         citations=parsed.citations,
         passages=passages,
-        usage=_usage(response, time.monotonic() - started),
+        usage=usage,
     )
 
 

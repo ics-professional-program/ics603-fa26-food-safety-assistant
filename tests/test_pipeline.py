@@ -18,7 +18,7 @@ def _patch(monkeypatch, passages, generated=None):
     monkeypatch.setattr(pipeline.store, "log_outcome",
                         lambda conn, qid, **kw: calls["outcomes"].append(kw))
 
-    def fake_answer_question(question, psgs, *, client=None):
+    def fake_answer_question(question, psgs, *, agent=None):
         calls["generate"] += 1
         return generated
 

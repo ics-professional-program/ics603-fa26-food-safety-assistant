@@ -1,9 +1,12 @@
-import json
 from types import SimpleNamespace
 
 import pytest
+from pydantic_ai import ModelAPIError, UnexpectedModelBehavior, models
+from pydantic_ai.models.test import TestModel
+from pydantic_ai.usage import RunUsage
 
 from foodsafety_rag import generate
+from foodsafety_rag.agent import ModelAnswer, food_safety_agent
 from foodsafety_rag.generate import (
     SOURCES_MARKER,
     GenerationError,
@@ -48,6 +51,22 @@ class StubClient:
         self.chat = SimpleNamespace(completions=self.completions)
 
 
+class StubAgent:
+    def __init__(self, output=None, *, usage=None, error=None):
+        self.output = output
+        self.run_usage = usage or RunUsage()
+        self.error = error
+        self.prompt = None
+        self.deps = None
+
+    def run_sync(self, prompt, *, deps):
+        self.prompt = prompt
+        self.deps = deps
+        if self.error:
+            raise self.error
+        return SimpleNamespace(output=self.output, usage=self.run_usage)
+
+
 PASSAGES = [
     Passage(doc="FDA Food Code §3-401 — Cooking Temperatures",
             heading="Poultry and stuffed foods",
@@ -61,7 +80,10 @@ def _endpoint(monkeypatch):
     """Every test runs against a known endpoint, never the developer's own."""
     monkeypatch.setenv("LLM_BASE_URL", LOCAL_URL)
     monkeypatch.setenv("LLM_MODEL", "test-model")
+    monkeypatch.setenv("LLM_PROVIDER", "course")
     monkeypatch.delenv("LLM_API_KEY", raising=False)
+    with models.override_allow_model_requests(False):
+        yield
 
 
 def test_hosted_endpoint_requires_key(monkeypatch):
@@ -92,39 +114,33 @@ def test_ask_model_returns_text():
 
 
 def test_answer_question_builds_grounded_answer():
-    client = StubClient(content=json.dumps({
-        "answer": "Poultry must reach 165°F (74°C) for 15 seconds.",
-        "supported": True,
-        "citations": [{"doc": "FDA Food Code §3-401 — Cooking Temperatures",
-                       "heading": "Poultry and stuffed foods",
-                       "snippet": "...165°F (74°C)..."}],
-    }))
+    agent = StubAgent(ModelAnswer(
+        answer="Poultry must reach 165°F (74°C) for 15 seconds.",
+        supported=True,
+        citations=[Citation(doc="FDA Food Code §3-401 — Cooking Temperatures",
+                            heading="Poultry and stuffed foods",
+                            snippet="...165°F (74°C)...")],
+    ))
     answer = generate.answer_question(
-        "What is the minimum internal temperature for poultry?", PASSAGES, client=client)
+        "What is the minimum internal temperature for poultry?", PASSAGES, agent=agent)
     assert isinstance(answer, Answer)
     assert answer.grounded is True
     assert answer.passages == PASSAGES
     assert answer.citations[0].heading == "Poultry and stuffed foods"
-    kwargs = client.completions.last_kwargs
     # the grounded prompt must contain the passage text and the question
-    prompt = kwargs["messages"][0]["content"]
+    prompt = agent.prompt
     assert "165°F (74°C) for 15 seconds" in prompt
     assert "minimum internal temperature for poultry" in prompt
     assert "only" in prompt.lower()  # answer ONLY from passages instruction
-    # and the answer must be requested as schema-checked JSON, not free prose
-    assert kwargs["response_format"]["type"] == "json_schema"
-    assert set(kwargs["response_format"]["json_schema"]["schema"]["properties"]) == {
-        "answer", "supported", "citations"}
+    assert agent.deps == PASSAGES
 
 
 def test_answer_question_reports_token_cost():
-    client = StubClient(content=json.dumps(
-        {"answer": "165°F.", "supported": True, "citations": []}))
-    client.completions.create = lambda **kw: SimpleNamespace(
-        choices=[SimpleNamespace(message=SimpleNamespace(
-            content='{"answer": "165°F.", "supported": true, "citations": []}'))],
-        usage=SimpleNamespace(prompt_tokens=812, completion_tokens=64))
-    answer = generate.answer_question("q?", PASSAGES, client=client)
+    agent = StubAgent(
+        ModelAnswer(answer="165°F.", supported=True, citations=[]),
+        usage=RunUsage(input_tokens=812, output_tokens=64),
+    )
+    answer = generate.answer_question("q?", PASSAGES, agent=agent)
     assert answer.usage.prompt_tokens == 812
     assert answer.usage.completion_tokens == 64
     assert answer.usage.total_tokens == 876
@@ -133,8 +149,11 @@ def test_answer_question_reports_token_cost():
 
 def test_usage_is_none_when_the_server_reports_none():
     """Not every OpenAI-compatible server returns a usage block."""
-    client = StubClient(content='{"answer": "a", "supported": true, "citations": []}')
-    assert generate.answer_question("q?", PASSAGES, client=client).usage is None
+    agent = StubAgent(
+        ModelAnswer(answer="a", supported=True, citations=[]),
+        usage=RunUsage(requests=1),
+    )
+    assert generate.answer_question("q?", PASSAGES, agent=agent).usage is None
 
 
 def test_stream_grounded_yields_usage_last():
@@ -155,24 +174,46 @@ def test_stream_grounded_requests_usage_from_the_server():
     assert client.completions.last_kwargs["stream_options"] == {"include_usage": True}
 
 
-def test_strict_schema_closes_every_object():
-    schema = generate._strict_schema(generate.ModelAnswer)
-    objects = [schema, *schema.get("$defs", {}).values()]
-    assert objects and all(o["additionalProperties"] is False for o in objects)
+def test_agent_override_exercises_the_real_output_contract():
+    output = (
+        '{"answer":"165°F.","supported":true,"citations":[{'
+        f'"doc":"{PASSAGES[0].doc}","heading":"{PASSAGES[0].heading}",'
+        '"snippet":"165°F"}]}'
+    )
+    with food_safety_agent.override(model=TestModel(
+        profile={"supports_json_schema_output": True}, custom_output_text=output
+    )):
+        result = food_safety_agent.run_sync("test", deps=PASSAGES)
+
+    assert isinstance(result.output, ModelAnswer)
+    assert result.output.citations[0].heading == PASSAGES[0].heading
 
 
-def test_unparseable_json_raises_generation_error():
-    client = StubClient(content="I'm afraid I can't do that.")
-    with pytest.raises(GenerationError):
-        generate.answer_question("hi", PASSAGES, client=client)
+def test_agent_rejects_a_citation_that_was_not_retrieved():
+    output = (
+        '{"answer":"invented","supported":true,"citations":['
+        '{"doc":"missing","heading":"missing","snippet":"x"}]}'
+    )
+    with food_safety_agent.override(model=TestModel(
+        profile={"supports_json_schema_output": True}, custom_output_text=output
+    )):
+        with pytest.raises(UnexpectedModelBehavior):
+            food_safety_agent.run_sync("test", deps=PASSAGES)
 
 
 def test_llm_failure_raises_generation_error():
     client = StubClient(error=ValueError("boom"))
     with pytest.raises(GenerationError):
         generate.ask_model("hi", client=client)
+    agent = StubAgent(error=UnexpectedModelBehavior("bad output"))
     with pytest.raises(GenerationError):
-        generate.answer_question("hi", PASSAGES, client=client)
+        generate.answer_question("hi", PASSAGES, agent=agent)
+
+
+def test_connection_failure_raises_generation_error():
+    agent = StubAgent(error=ModelAPIError("test-model", "connection failed"))
+    with pytest.raises(GenerationError):
+        generate.answer_question("hi", PASSAGES, agent=agent)
 
 
 def _run(pieces=None, error=None):

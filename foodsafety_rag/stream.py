@@ -8,8 +8,8 @@ import time
 from collections.abc import Iterator
 
 from foodsafety_rag import embed, store
-from foodsafety_rag.config import SIMILARITY_THRESHOLD, TOP_K
-from foodsafety_rag.generate import GenerationError, stream_grounded
+from foodsafety_rag.config import SIMILARITY_THRESHOLD, TOP_K, get_settings
+from foodsafety_rag.generate import GenerationError, answer_question, stream_grounded
 from foodsafety_rag.pipeline import NOT_FOUND_ANSWER
 from foodsafety_rag.schemas import Citation, Passage
 
@@ -25,7 +25,7 @@ def _chunk_text(text: str) -> list[str]:
     return [w + " " for w in text.split(" ")]
 
 
-def stream_events(question: str, *, conn, client=None) -> Iterator[dict]:
+def stream_events(question: str, *, conn, client=None, agent=None) -> Iterator[dict]:
     query_id = store.log_query(conn, question)
 
     t = time.monotonic()
@@ -57,6 +57,29 @@ def stream_events(question: str, *, conn, client=None) -> Iterator[dict]:
 
     t = time.monotonic()
     yield {"type": "stage", "step": "generate", "status": "start", "detail": "asking the model"}
+
+    # The raw SDK path below demonstrates true token streaming for the course's
+    # OpenAI-compatible endpoint. Other providers use the same typed Pydantic AI
+    # answer path as POST /ask, then emit word-sized UI chunks after validation.
+    if get_settings().llm_provider != "course":
+        try:
+            kwargs = {"agent": agent} if agent is not None else {}
+            answer = answer_question(question, passages, **kwargs)
+        except GenerationError:
+            yield {"type": "error", "detail": _FRIENDLY_GEN_ERROR}
+            return
+
+        for piece in _chunk_text(answer.answer):
+            yield {"type": "token", "text": piece}
+        store.log_outcome(conn, query_id, grounded=answer.grounded, usage=answer.usage)
+        yield {"type": "stage", "step": "generate", "status": "done",
+               "detail": "typed answer buffered before display", "elapsed_ms": _ms(t),
+               **({"prompt_tokens": answer.usage.prompt_tokens,
+                   "completion_tokens": answer.usage.completion_tokens}
+                  if answer.usage else {})}
+        yield {"type": "answer", **answer.model_dump()}
+        return
+
     prose: list[str] = []
     citations: list[Citation] = []
     usage = None

@@ -1,7 +1,7 @@
 from foodsafety_rag import stream
 from foodsafety_rag.config import SIMILARITY_THRESHOLD
 from foodsafety_rag.generate import GenerationError, StreamChunk
-from foodsafety_rag.schemas import Citation
+from foodsafety_rag.schemas import Answer, Citation
 
 
 def _passage_row(score, heading="Poultry"):
@@ -76,6 +76,33 @@ def test_grounded_empty_citations_fall_back_to_passages(monkeypatch):
     ans = list(stream.stream_events("q?", conn=object()))[-1]
     assert ans["citations"], "empty model citations must fall back to retrieved passages"
     assert ans["citations"][0]["heading"] == "Poultry"
+
+
+def test_optional_provider_uses_typed_answer_path(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "anthropic")
+    rows = [_passage_row(0.7)]
+    calls = _patch(monkeypatch, rows)
+    typed_calls = []
+
+    def fake_answer(question, passages, *, agent=None):
+        typed_calls.append((question, passages))
+        return Answer(
+            question=question,
+            answer="Poultry must reach 165°F.",
+            grounded=True,
+            citations=[Citation(doc=passages[0].doc,
+                                heading=passages[0].heading,
+                                snippet="165°F")],
+            passages=passages,
+        )
+
+    monkeypatch.setattr(stream, "answer_question", fake_answer)
+    events = list(stream.stream_events("q?", conn=object()))
+
+    assert typed_calls and calls["generated"] == 0
+    assert any(event["type"] == "token" for event in events)
+    assert events[-1]["type"] == "answer"
+    assert events[-1]["answer"] == "Poultry must reach 165°F."
 
 
 def test_generation_error_yields_error_event(monkeypatch):

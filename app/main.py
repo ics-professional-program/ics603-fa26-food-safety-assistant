@@ -14,6 +14,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 
 from foodsafety_rag import generate, pipeline, store, stream
+from foodsafety_rag.agent import check_credentials
 from foodsafety_rag.config import SIMILARITY_THRESHOLD, get_settings
 from foodsafety_rag.generate import GenerationError
 from foodsafety_rag.schemas import Answer, AskRequest
@@ -80,7 +81,7 @@ async def lifespan(app: FastAPI):
     if settings.replay:
         app.state.fixtures = load_fixtures(FIXTURES_DIR)
     else:
-        generate.check_credentials()  # fail at startup, not on the first question
+        check_credentials()  # fail at startup, not on the first question
     yield
 
 

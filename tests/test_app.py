@@ -9,6 +9,7 @@ from foodsafety_rag.schemas import Answer
 @pytest.fixture()
 def client(monkeypatch):
     monkeypatch.setenv("LLM_API_KEY", "test-key")  # fake; nothing real is called
+    monkeypatch.setenv("LLM_PROVIDER", "course")
     monkeypatch.delenv("REPLAY", raising=False)
     from app import main
     with TestClient(main.app) as c:
@@ -35,7 +36,7 @@ def test_ask_returns_answer_contract(client, monkeypatch):
     answer = Answer(question="q?", answer="165°F.", grounded=True)
     monkeypatch.setattr(main.store, "get_conn", lambda url: FakeConn())
     monkeypatch.setattr(main.pipeline, "grounded_answer",
-                        lambda q, *, conn, client=None: answer)
+                        lambda q, *, conn, agent=None: answer)
     r = c.post("/ask", json={"question": "q?"})
     assert r.status_code == 200
     body = r.json()
@@ -66,7 +67,7 @@ def test_generation_error_is_friendly_502(client, monkeypatch):
     c, main = client
     monkeypatch.setattr(main.store, "get_conn", lambda url: FakeConn())
 
-    def boom(q, *, conn, client=None):
+    def boom(q, *, conn, agent=None):
         raise GenerationError("LLM call failed (QuotaError)")
 
     monkeypatch.setattr(main.pipeline, "grounded_answer", boom)

@@ -18,7 +18,7 @@ NOT_FOUND_ANSWER = (
 )
 
 
-def grounded_answer(question: str, *, conn, client=None) -> Answer:
+def grounded_answer(question: str, *, conn, agent=None) -> Answer:
     query_id = store.log_query(conn, question)
     passages = retrieve(question, conn=conn)
     if not passages or passages[0].score < SIMILARITY_THRESHOLD:
@@ -30,6 +30,7 @@ def grounded_answer(question: str, *, conn, client=None) -> Answer:
             citations=[],
             passages=passages,
         )
-    answer = answer_question(question, passages, client=client)
+    kwargs = {"agent": agent} if agent is not None else {}
+    answer = answer_question(question, passages, **kwargs)
     store.log_outcome(conn, query_id, grounded=answer.grounded, usage=answer.usage)
     return answer
