@@ -1,6 +1,6 @@
 # Evaluation set and harness
 
-The labeled eval set for session 13.0: thirteen questions in
+The labeled eval set for session 13.0: fourteen questions in
 [`eval_set.json`](eval_set.json), each with a reference answer, the labeled
 source chunk (or `null` for off-corpus questions), and whether the corpus can
 answer it at all. The scoring code is
@@ -47,6 +47,11 @@ line names any retrieval-good/generation-bad rows.
 
 Run 2026-08-24 against the course endpoint (`gpt-oss-120b` behind
 `llm.jetstream-cloud.org`), full corpus (1,462 chunks) ingested.
+
+> These numbers predate the ICN-based rewrite of the `sop/` tier, the new
+> `fda/employee-health-and-exclusions.md` document, and the added
+> `illness-return-to-work` case — the corpus is now 1,478 chunks and the set
+> is 14 cases. Re-run both labels before quoting these in 13.0.
 
 **Baseline** (`--label baseline`): retrieval 7/10 hits, deterministic 11/13
 pass, judge mean 6.8/8. The instructive rows:

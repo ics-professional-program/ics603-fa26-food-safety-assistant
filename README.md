@@ -7,9 +7,10 @@ the corpus doesn't cover a question, it declines instead of guessing.
 
 The corpus has two tiers (see [`corpus/README.md`](corpus/README.md) for
 provenance): a curated core adapted from the real FDA Food Code (2022 and
-2017 editions), Hawaii's HAR 11-50 food-safety rules, and fictional Pacific
-Market Cafe SOPs — including three real, citable disagreements between
-sources — plus `corpus/bulk/`, chapters 2-8 of both Food Code editions
+2017 editions), Hawaii's HAR 11-50 food-safety rules, and Pacific Market Cafe
+SOPs written on the Institute of Child Nutrition's real HACCP-based SOP
+templates — the cafe is fictional, its procedures are not invented — including
+three real, citable disagreements between sources — plus `corpus/bulk/`, chapters 2-8 of both Food Code editions
 converted mechanically (~1,400 passages) so the 11.1 index comparison has
 enough rows to measure. `scripts/ingest_corpus.py --skip-bulk` ingests just
 the curated core, which is the fast path for the small-corpus demos.

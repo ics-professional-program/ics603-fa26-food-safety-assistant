@@ -64,9 +64,11 @@ def test_conflict_case_facts_present():
     assert "nine" in fda.lower() and "eight" in fda17.lower()
 
     # SOP stricter than code: company hot holding at 140°F vs. the code's
-    # 135°F.
+    # 135°F, and a 48-hour illness return vs. the code's 24 hours.
     assert "140°F" in sop
     assert "135°F" in fda
+    assert "48 hours" in sop
+    assert "asymptomatic for at least 24 hours" in fda
 
 
 def test_curated_docs_cite_their_source():
@@ -77,4 +79,7 @@ def test_curated_docs_cite_their_source():
         elif f.parent.name == "hawaii":
             assert "11-50" in text, f.name
         elif f.parent.name == "sop":
+            # The cafe is fictional, but every SOP is built on a real,
+            # publicly distributed ICN template and must name it.
             assert "Pacific Market Cafe" in text, f.name
+            assert "Institute of Child Nutrition" in text, f.name

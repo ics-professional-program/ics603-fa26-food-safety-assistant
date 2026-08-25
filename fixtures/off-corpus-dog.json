@@ -1,6 +1,6 @@
 {
   "question": "Can I bring my dog into the kitchen?",
-  "answer": "I could not find an answer to this in the trusted food-safety documents (FDA Food Code excerpts and Pacific Market Cafe SOPs). Please check with your manager or the source documents directly.",
+  "answer": "I could not find an answer to this in the trusted food-safety documents (FDA Food Code excerpts, Hawaii food-safety rules, and Pacific Market Cafe SOPs). Please check with your manager or the source documents directly.",
   "grounded": false,
   "citations": [],
   "passages": [
@@ -11,22 +11,22 @@
       "score": 0.33138761911951375
     },
     {
+      "doc": "SOP-03 — Employee Illness Reporting (Pacific Market Cafe)",
+      "heading": "Corrective action",
+      "text": "Corrective action\nrequired by the health department, written medical clearance. Return\nafter vomiting or diarrhea without a diagnosis requires the full 48\nsymptom-free hours and the approval of the manager on duty.\nSend home any employee who reports or shows a symptom requiring exclusion,\nand reassign their station. Discard any food they may have contaminated, and\nclean and sanitize the surfaces and equipment they used. Retrain any\nemployee who worked a shift without reporting a symptom requiring exclusion.",
+      "score": 0.3256609349655013
+    },
+    {
       "doc": "FDA Food Code §4-501 — Cleaning and Sanitizing",
       "heading": "Wiping cloths",
       "text": "Wiping cloths\nand utensils in continuous use with TCS food must be\ncleaned and sanitized at least every 4 hours. Surfaces must be washed,\nrinsed, and sanitized — in that order — after each use with raw animal food.\nIn-use wet wiping cloths must be stored in sanitizer solution at the proper\nconcentration between uses, never left on counters.",
       "score": 0.317396342754364
     },
     {
-      "doc": "SOP-03 — Employee Illness Reporting (Pacific Market Cafe)",
-      "heading": "Symptoms requiring exclusion",
-      "text": "Symptoms requiring exclusion\nEmployees experiencing vomiting, diarrhea, or jaundice must report it to the\nmanager on duty and may not work with food. Employees with vomiting or\ndiarrhea may return only after being symptom-free for at least 48 hours.",
-      "score": 0.30671197175979614
-    },
-    {
-      "doc": "FDA Food Code §2-301 — Handwashing and Personal Hygiene",
-      "heading": "When to wash hands",
-      "text": "When to wash hands\nFood employees must wash their hands before starting food preparation, after\nhandling raw meat or poultry, after using the restroom, after coughing or\nsneezing, after touching the face or hair, after handling garbage, and after\nany activity that contaminates the hands.",
-      "score": 0.27624504111736825
+      "doc": "SOP-01 — Receiving and Storage (Pacific Market Cafe)",
+      "heading": "Cold storage order",
+      "text": "Cold storage order\ncarton, and no other sign of thawing and refreezing.\n\nInspect the truck for cleanliness and odor, check the integrity of the\npackaging, and check the use-by dates on milk, eggs, and other perishables.\nStore food in the walk-in from top shelf to bottom shelf in this order:\nready-to-eat foods, whole cuts of beef and pork, ground meats, and raw\npoultry on the bottom shelf. The order follows cooking temperature — the\nfood that needs the highest cooking temperature sits lowest, so nothing can\ndrip onto a food that will be cooked to a lower temperature or eaten as is.\nNever store raw animal foods above ready-to-eat foods.",
+      "score": 0.3134612441062927
     }
   ],
   "usage": null
