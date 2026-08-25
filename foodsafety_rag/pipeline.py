@@ -13,7 +13,8 @@ from foodsafety_rag.schemas import Answer
 
 NOT_FOUND_ANSWER = (
     "I could not find an answer to this in the trusted food-safety documents "
-    "(FDA Food Code excerpts and Pacific Market Cafe SOPs). Please check with "
+    "(FDA Food Code excerpts, Hawaii food-safety rules, and Pacific Market "
+    "Cafe SOPs). Please check with "
     "your manager or the source documents directly."
 )
 

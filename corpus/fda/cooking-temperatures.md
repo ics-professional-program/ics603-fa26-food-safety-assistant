@@ -1,11 +1,14 @@
 # FDA Food Code §3-401 — Cooking Temperatures
 
-Adapted excerpt of minimum internal cooking temperatures for raw animal foods.
+Adapted from the FDA Food Code 2022 edition, §3-401.11: minimum internal
+cooking temperatures for raw animal foods. Teaching data, not current
+guidance.
 
 ## Poultry and stuffed foods
 Raw poultry, including whole or ground chicken, turkey, and duck, must be
-cooked to a minimum internal temperature of 165°F (74°C) for at least
-15 seconds. The same 165°F standard applies to stuffed foods, stuffing that
+cooked to a minimum internal temperature of 165°F (74°C), held for less
+than one second (instantaneous). The same 165°F standard applies to stuffed
+foods, stuffing that
 contains raw meat, and any dish combining raw poultry with other ingredients.
 
 ## Ground meats

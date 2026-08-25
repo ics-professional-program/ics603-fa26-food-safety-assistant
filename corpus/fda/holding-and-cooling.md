@@ -1,6 +1,8 @@
 # FDA Food Code §3-501 — Holding and Cooling
 
-Adapted excerpt on time/temperature control for safety (TCS) foods.
+Adapted from the FDA Food Code 2022 edition, §§3-501.14, 3-501.16, and
+3-501.17: time/temperature control for safety (TCS) foods. Teaching data,
+not current guidance.
 
 ## Cold holding
 TCS foods held cold must be maintained at 41°F (5°C) or below. Examples

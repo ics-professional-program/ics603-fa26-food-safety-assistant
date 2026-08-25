@@ -1,6 +1,8 @@
 # FDA Food Code §4-501 — Cleaning and Sanitizing
 
-Adapted excerpt on sanitization of equipment and utensils.
+Adapted from the FDA Food Code 2022 edition, §§4-501.114, 4-602.11, and
+3-304.14: sanitization of equipment and utensils. Teaching data, not
+current guidance.
 
 ## Sanitizer concentrations
 Chlorine (bleach) sanitizing solutions must be maintained at 50–100 ppm with
