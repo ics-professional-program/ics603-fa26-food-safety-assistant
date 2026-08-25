@@ -170,6 +170,13 @@ The web UI is styled with the UH Mānoa PMCS design system, vendored as the
 Its brand tokens (colors, Helvetica Neue type, spacing, card/badge patterns)
 are inlined into `app/static/index.html` — no build step, no external CDN.
 
+The page is laid out for teaching: the answer column sits beside a sticky
+pipeline rail that lists embed → retrieve → guard → generate even before the
+first question, the guard step draws its decision on a similarity meter
+(candidate scores plotted against the 0.35 threshold), grounded answers show
+their citations, and the example-question chips match the replay fixtures so
+a class demo works with `REPLAY=1` and no API key.
+
 ## Notes
 
 - Embeddings are local (`all-MiniLM-L6-v2`, 384-dim) — only generation needs
