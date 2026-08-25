@@ -2,9 +2,17 @@
 
 A Retrieval-Augmented Generation (RAG) grounded-Q&A demo app for ICS 603
 (Fall 2026). Staff ask plain-language food-safety questions; the app answers
-**only** from a trusted corpus (FDA Food Code-style excerpts + synthetic
-Pacific Market Cafe SOPs) and shows the source passages it used. When the
-corpus doesn't cover a question, it declines instead of guessing.
+**only** from a trusted corpus and shows the source passages it used. When
+the corpus doesn't cover a question, it declines instead of guessing.
+
+The corpus has two tiers (see [`corpus/README.md`](corpus/README.md) for
+provenance): a curated core adapted from the real FDA Food Code (2022 and
+2017 editions), Hawaii's HAR 11-50 food-safety rules, and fictional Pacific
+Market Cafe SOPs — including three real, citable disagreements between
+sources — plus `corpus/bulk/`, chapters 2-8 of both Food Code editions
+converted mechanically (~1,400 passages) so the 11.1 index comparison has
+enough rows to measure. `scripts/ingest_corpus.py --skip-bulk` ingests just
+the curated core, which is the fast path for the small-corpus demos.
 
 This is the course's reference architecture: the capstone project is your own
 version of this same pattern. It is also the fallback application for sessions
@@ -142,10 +150,17 @@ captured fixtures, so the live view still works with no key and no DB.
 
 - `scripts/ingest_corpus.py` — (re)build the index. Idempotent, and it also
   applies schema changes, so run it once after pulling a version that adds
-  columns.
+  columns. `--skip-bulk` ingests the curated core only.
 - `scripts/contrast.py "your question"` — plain model call vs grounded pipeline.
 - `scripts/capture_fixtures.py` — refresh the replay fixtures (set `ASK_URL`
   if the app is not on port 8000).
+- `scripts/convert_food_code.py` — regenerate `corpus/bulk/` from the
+  official Food Code PDFs (the generated markdown is committed).
+- `scripts/index_comparison.py` — the 11.1 before/after HNSW measurement;
+  recorded numbers live in
+  [`docs/retrieval-reference.md`](docs/retrieval-reference.md).
+- `scripts/run_eval.py --label <name>` — run the labeled eval set
+  ([`evals/`](evals/)); retrieval and generation scored separately.
 
 ## Branding
 
