@@ -60,23 +60,6 @@ uv run uvicorn app.main:app --port 8000
 Set `REPLAY=1` and start the app: `/ask` serves captured answers from
 `fixtures/`. The notebook has an equivalent captured-response fallback cell.
 
-## What a question costs
-
-Every question is logged to `query_log` with whether it was grounded, the prompt
-and completion token counts, and the generation latency. A declined question
-records `grounded = false` with no tokens at all — the guard stops it before any
-model call, so declining is free. The web UI shows the same token counts beside
-the latency in the generate stage.
-
-```sql
-SELECT grounded, count(*), avg(latency_ms)::int AS ms,
-       sum(prompt_tokens + completion_tokens) AS tokens
-FROM query_log WHERE prompt_tokens IS NOT NULL GROUP BY grounded;
-```
-
-Over a term this accumulates into real measurements for 13.0 (evaluating LLM
-applications) rather than a hypothetical cost model.
-
 ## Live pipeline view
 
 `POST /ask/stream` returns Server-Sent Events so the web UI can show the
