@@ -67,14 +67,19 @@ def chunk_markdown(md: str, *, source: str, path: str) -> list[RawChunk]:
     return chunks
 
 
-def load_corpus(corpus_dir: Path) -> list[RawChunk]:
+def load_corpus(corpus_dir: Path, *, include_bulk: bool = True) -> list[RawChunk]:
     chunks: list[RawChunk] = []
     for md_file in sorted(corpus_dir.rglob("*.md")):
+        rel = md_file.relative_to(corpus_dir)
+        if rel.name.lower() == "readme.md":
+            continue          # provenance notes, not passages
+        if not include_bulk and rel.parts[0] == "bulk":
+            continue          # --skip-bulk: curated core only
         chunks.extend(
             chunk_markdown(
                 md_file.read_text(encoding="utf-8"),
                 source=md_file.parent.name,
-                path=md_file.relative_to(corpus_dir).as_posix(),
+                path=rel.as_posix(),
             )
         )
     return chunks
