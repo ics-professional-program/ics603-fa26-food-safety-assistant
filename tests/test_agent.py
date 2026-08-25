@@ -52,3 +52,47 @@ def test_openai_and_anthropic_use_their_own_credentials(monkeypatch):
 def test_unknown_provider_fails_before_the_first_request():
     with pytest.raises(RuntimeError, match="LLM_PROVIDER"):
         check_credentials(_settings("unknown"))
+
+
+def _passage(doc, heading):
+    from foodsafety_rag.schemas import Passage
+    return Passage(doc=doc, heading=heading, text="body", score=0.9)
+
+
+def _citation(doc, heading):
+    from foodsafety_rag.schemas import Citation
+    return Citation(doc=doc, heading=heading, snippet="s")
+
+
+def test_citation_matches_tolerates_formatting_variance():
+    from foodsafety_rag.agent import citation_matches
+    passages = [_passage("FDA Food Code §3-401 — Cooking Temperatures",
+                         "Poultry and stuffed foods")]
+    # models often reproduce the em dash as a hyphen and drop the section sign
+    assert citation_matches(
+        _citation("FDA Food Code 3-401 - Cooking Temperatures",
+                  "Poultry and stuffed foods"), passages)
+
+
+def test_citation_matches_tolerates_a_completed_truncated_title():
+    from foodsafety_rag.agent import citation_matches
+    # generated bulk titles can be cut at a line break; the model cites the
+    # full section name
+    passages = [_passage(
+        "FDA Food Code 2022 3-501.16 Time/Temperature Control for Safety Food, Hot and Cold",
+        "3-501.16")]
+    assert citation_matches(
+        _citation("FDA Food Code 2022 3-501.16 Time/Temperature Control for Safety Food, Hot and Cold Holding",
+                  "3-501.16"), passages)
+
+
+def test_citation_matches_rejects_fabrications():
+    from foodsafety_rag.agent import citation_matches
+    passages = [_passage("FDA Food Code §3-401 — Cooking Temperatures",
+                         "Poultry and stuffed foods")]
+    assert not citation_matches(
+        _citation("USDA Handbook of Poultry", "Poultry and stuffed foods"),
+        passages)
+    assert not citation_matches(
+        _citation("FDA Food Code §3-401 — Cooking Temperatures", "Ground meats"),
+        passages)

@@ -6,6 +6,7 @@ one stable interface. The raw ``ask_model`` and streaming examples remain in
 """
 
 import os
+import re
 from urllib.parse import urlparse
 
 from pydantic import BaseModel
@@ -98,17 +99,46 @@ food_safety_agent = Agent(
 )
 
 
+_WS_RE = re.compile(r"\s+")
+
+
+def _normalize(text: str) -> str:
+    """Fold the formatting variance models introduce when they repeat a title:
+    em/en dashes become hyphens, the section sign is dropped, whitespace and
+    case collapse. Semantic content is untouched, so a fabricated citation
+    still cannot match."""
+    text = (text.replace("—", "-").replace("–", "-")
+            .replace("§", ""))
+    return _WS_RE.sub(" ", text).strip().lower()
+
+
+def citation_matches(citation: Citation, passages: list[Passage]) -> bool:
+    """True when the citation names one of the supplied passages. The heading
+    must match exactly (normalized); the doc title may extend a supplied title
+    that was truncated at a line break, or be extended by it."""
+    c_doc, c_heading = _normalize(citation.doc), _normalize(citation.heading)
+    for passage in passages:
+        if c_heading != _normalize(passage.heading):
+            continue
+        p_doc = _normalize(passage.doc)
+        if c_doc == p_doc:
+            return True
+        shorter, longer = sorted((c_doc, p_doc), key=len)
+        if len(shorter) >= 12 and longer.startswith(shorter):
+            return True
+    return False
+
+
 @food_safety_agent.output_validator
 def validate_citations(
     ctx: RunContext[list[Passage]], output: ModelAnswer
 ) -> ModelAnswer:
     """Reject structurally valid citations that do not name retrieved evidence."""
 
-    allowed = {(passage.doc, passage.heading) for passage in ctx.deps}
     invalid = [
         citation
         for citation in output.citations
-        if (citation.doc, citation.heading) not in allowed
+        if not citation_matches(citation, ctx.deps)
     ]
     if invalid:
         raise ModelRetry("Every citation must name one of the supplied passages.")
