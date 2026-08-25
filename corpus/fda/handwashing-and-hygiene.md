@@ -1,6 +1,7 @@
 # FDA Food Code §2-301 — Handwashing and Personal Hygiene
 
-Adapted excerpt on employee hygiene requirements.
+Adapted from the FDA Food Code 2022 edition, §§2-301.12 and 3-301.11:
+employee hygiene requirements. Teaching data, not current guidance.
 
 ## When to wash hands
 Food employees must wash their hands before starting food preparation, after

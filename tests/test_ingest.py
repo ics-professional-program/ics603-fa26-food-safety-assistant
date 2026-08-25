@@ -68,6 +68,25 @@ def test_real_corpus_chunks_contain_no_word_fragments():
 def test_load_corpus_reads_real_corpus():
     chunks = load_corpus(Path(__file__).parent.parent / "corpus")
     assert len(chunks) >= 16  # 8 docs x >=2 sections
-    assert {c.source for c in chunks} == {"fda", "sop"}
+    assert {"fda", "sop"} <= {c.source for c in chunks}
     poultry = [c for c in chunks if "165°F" in c.text and "Poultry" in c.heading]
     assert poultry, "expected the poultry cooking-temperature chunk"
+
+
+def test_load_corpus_excludes_readme_and_filters_bulk(tmp_path):
+    (tmp_path / "fda").mkdir()
+    (tmp_path / "bulk" / "fda-2022-full").mkdir(parents=True)
+    (tmp_path / "README.md").write_text(
+        "# About\n\n## Provenance\nnotes\n", encoding="utf-8")
+    (tmp_path / "fda" / "a.md").write_text(
+        "# A\n\n## S1\nbody one.\n\n## S2\nbody two.\n", encoding="utf-8")
+    (tmp_path / "bulk" / "fda-2022-full" / "b.md").write_text(
+        "# B\n\n## T1\nbulk body.\n", encoding="utf-8")
+
+    everything = load_corpus(tmp_path)
+    assert {c.source for c in everything} == {"fda", "fda-2022-full"}
+    assert not any("README" in c.path for c in everything)
+
+    core = load_corpus(tmp_path, include_bulk=False)
+    assert {c.source for c in core} == {"fda"}
+    assert {c.path for c in core} == {"fda/a.md"}
