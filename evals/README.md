@@ -45,5 +45,39 @@ line names any retrieval-good/generation-bad rows.
 
 ## Recorded runs
 
-<!-- Filled in by the before/after demonstration (Task 7): baseline scores,
-the one-line prompt change, and the scores after it. -->
+Run 2026-08-24 against the course endpoint (`gpt-oss-120b` behind
+`llm.jetstream-cloud.org`), full corpus (1,462 chunks) ingested.
+
+**Baseline** (`--label baseline`): retrieval 7/10 hits, deterministic 11/13
+pass, judge mean 6.8/8. The instructive rows:
+
+- `handwash-water-temp` — retrieval **MISS** (the labeled Hawaii chunk ranks
+  8th behind four near-duplicate FDA chunks), deterministic **FAIL** (the
+  answer gave only the 2022 edition's 85°F and omitted 2017's 100°F even
+  though that chunk was retrieved), judge **3/8**. The conflict in the
+  passages went unhandled.
+- `dog-in-kitchen` and `handwash-duration` — retrieval MISS with a passing
+  answer: generation worked from other relevant chunks. Retrieval and
+  generation disagreeing in the other direction.
+- `hot-holding-minimum` — ERROR: the endpoint failed the structured-output
+  call twice. An eval also measures your infrastructure.
+
+**The one-line change:** added to `GROUNDED_PROMPT` in
+`foodsafety_rag/generate.py`:
+
+> If the passages disagree with each other, present both values, name each
+> source, and say which one governs.
+
+**After** (`--label conflict-instruction`): `handwash-water-temp` went from
+deterministic FAIL / judge 3 to **pass / judge 8** — the answer now presents
+85°F and 100°F, names both editions, and says which governs. Judge mean rose
+to 7.3/8. No case that completed in both runs regressed. (This run had four
+ERROR rows — endpoint flakiness under sustained load, recorded as-is; the
+per-case before/after on completed pairs is the signal.)
+
+A separate finding from the first eval run: the citation validator's exact
+string matching rejected legitimate citations whenever the model normalized
+an em dash or completed a truncated title — 10 of 13 questions failed with
+`Exceeded maximum output retries`. Fixed in `foodsafety_rag/agent.py` by
+normalizing formatting variance before comparing (fabricated citations still
+fail). The eval caught a real app bug before any student saw it.
