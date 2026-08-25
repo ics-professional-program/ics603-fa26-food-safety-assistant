@@ -32,7 +32,11 @@ uv run python scripts/convert_food_code.py <extracted.txt> \
 ```
 
 `scripts/ingest_corpus.py --skip-bulk` ingests the curated tier only, which
-is the fast path for the small-corpus demonstrations.
+is the fast path for the small-corpus demonstrations. Measured 2026-08-24 on
+an Apple Silicon laptop: the full ingest (1,462 passages, local embeddings)
+takes about 9 seconds end to end; the curated-only ingest about 2 seconds.
+Budget more on slower hardware, and run the full ingest before class rather
+than during it.
 
 ## Sources
 
