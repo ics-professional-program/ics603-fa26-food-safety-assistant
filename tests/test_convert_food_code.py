@@ -97,6 +97,23 @@ def test_truncates_at_the_index():
     assert "due notice" not in sections[0].provisions[0]
 
 
+def test_three_digit_section_numbers_parse_whole():
+    # Chapter 6 numbers run past .99: 6-501.110 through 6-501.115. A
+    # two-digit pattern would read "6-501.115" as "6-501.11" plus a title
+    # starting with "5", then drop it as a duplicate of the real 6-501.11.
+    text = ("6-501.11 Repairing.\n"
+            "Physical facilities shall be maintained in good repair, with\n"
+            "surfaces, fixtures, and equipment kept sound so that they can be\n"
+            "cleaned effectively and do not harbor insects or rodents.\n"
+            "6-501.115 Prohibiting Animals.\n"
+            "Except as specified in this section, live animals may not be\n"
+            "allowed on the premises of a food establishment, subject to the\n"
+            "exceptions for service animals and similar allowances below.\n")
+    sections = parse_sections(text, chapters={6})
+    assert [s.number for s in sections] == ["6-501.11", "6-501.115"]
+    assert sections[1].title == "Prohibiting Animals"
+
+
 def test_short_provisions_merge():
     text = ("3-101.11 Safe Food.\n"
             "(A) Food shall be safe.\n"

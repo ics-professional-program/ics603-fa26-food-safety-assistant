@@ -23,7 +23,7 @@ import textwrap
 from dataclasses import dataclass
 from pathlib import Path
 
-SECTION_RE = re.compile(r"^(\d)-(\d{3})\.(\d{2})\s+(.+?)\s*$")
+SECTION_RE = re.compile(r"^(\d)-(\d{3})\.(\d{2,3})\s+(.+?)\s*$")
 PROVISION_RE = re.compile(r"^\(([A-Z])\)\s")
 FURNITURE_RE = re.compile(
     r"^\s*(\d{1,4}|FDA Food Code \d{4}.*|Food Code \d{4}.*|"
