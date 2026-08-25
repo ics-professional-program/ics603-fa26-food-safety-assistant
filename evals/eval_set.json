@@ -1,0 +1,106 @@
+[
+  {
+    "id": "poultry-temp",
+    "question": "What is the minimum internal temperature for cooking poultry?",
+    "reference_answer": "Raw poultry must be cooked to a minimum internal temperature of 165°F (74°C), held for less than one second (instantaneous). The same standard applies to stuffed foods and stuffing containing raw meat.",
+    "expected_chunk": {"path": "fda/cooking-temperatures.md", "heading": "Poultry and stuffed foods"},
+    "answerable": true,
+    "notes": "Canonical demo question; plain single-source hit."
+  },
+  {
+    "id": "ground-meat-temp",
+    "question": "What temperature does ground beef need to reach?",
+    "reference_answer": "Ground or mechanically tenderized meats such as ground beef and ground pork must reach a minimum internal temperature of 155°F (68°C) for 17 seconds.",
+    "expected_chunk": {"path": "fda/cooking-temperatures.md", "heading": "Ground meats"},
+    "answerable": true,
+    "notes": "Plain single-source hit with three checkable values."
+  },
+  {
+    "id": "cold-holding",
+    "question": "At what temperature must cold TCS food be held?",
+    "reference_answer": "TCS foods held cold must be maintained at 41°F (5°C) or below.",
+    "expected_chunk": {"path": "fda/holding-and-cooling.md", "heading": "Cold holding"},
+    "answerable": true,
+    "notes": "Plain single-source hit."
+  },
+  {
+    "id": "handwash-duration",
+    "question": "How long should employees wash their hands?",
+    "reference_answer": "Wash hands for at least 20 seconds using soap and warm running water, and dry with a single-use paper towel.",
+    "expected_chunk": {"path": "fda/handwashing-and-hygiene.md", "heading": "How to wash hands"},
+    "answerable": true,
+    "notes": "Plain single-source hit."
+  },
+  {
+    "id": "thermometer-calibration",
+    "question": "How do I calibrate a probe thermometer?",
+    "reference_answer": "Use the ice-point method: insert the probe into crushed ice and cold water, wait until the reading stabilizes, and adjust the thermometer to read 32°F (0°C). Record the calibration on the log.",
+    "expected_chunk": {"path": "sop/thermometer-calibration.md", "heading": "Ice-point method"},
+    "answerable": true,
+    "notes": "SOP-source hit."
+  },
+  {
+    "id": "handwash-water-temp",
+    "question": "How hot does the water at a handwashing sink need to be?",
+    "reference_answer": "The answer depends on the authority. The FDA Food Code 2022 edition requires water of at least 85°F (29.4°C) at a handwashing sink; the 2017 edition required 100°F (38°C). Hawaii's current Food Safety Code sets no minimum water temperature - hot water is optional - and in Hawaii establishments the state rule applies.",
+    "expected_chunk": {"path": "hawaii/handwashing-water-temperature.md", "heading": "No minimum water temperature"},
+    "answerable": true,
+    "notes": "Conflict case: state vs. federal AND 2017 vs. 2022. The answer should present the disagreeing values and say which governs."
+  },
+  {
+    "id": "sesame-allergen",
+    "question": "Is sesame a major food allergen?",
+    "reference_answer": "Under the FDA Food Code 2022 edition, yes: sesame is the ninth major food allergen, added following the FASTER Act of 2021. The 2017 edition listed eight major allergens and did not include sesame.",
+    "expected_chunk": {"path": "fda/major-food-allergens.md", "heading": "The nine major food allergens"},
+    "answerable": true,
+    "notes": "Conflict case: 2017 vs. 2022 edition. No numeric values, so the judge carries the scoring."
+  },
+  {
+    "id": "hot-holding-minimum",
+    "question": "What is the minimum hot-holding temperature for food on the line?",
+    "reference_answer": "Pacific Market Cafe's SOP requires hot TCS food to be held at 140°F (60°C) or above, which is deliberately stricter than the regulatory minimum of 135°F (57°C). On the line, follow the SOP.",
+    "expected_chunk": {"path": "sop/hot-holding-line-checks.md", "heading": "Company hot-holding standard"},
+    "answerable": true,
+    "notes": "Conflict case: SOP stricter than code. Both values should appear, with the SOP named as governing company operations."
+  },
+  {
+    "id": "roast-alternative",
+    "question": "What alternative time and temperature combinations can I use to cook a whole beef roast?",
+    "reference_answer": "Whole meat roasts may use lower temperatures held longer: 130°F (54.4°C) for 112 minutes, 131°F (55°C) for 89 minutes, 133°F (56.1°C) for 56 minutes, 135°F (57.2°C) for 36 minutes, 140°F (60°C) for 12 minutes, or 145°F (62.8°C) for 4 minutes. Holding time may include postoven heat rise.",
+    "expected_chunk": {"path": "fda/roast-cooking-alternatives.md", "heading": "Alternative time and temperature combinations"},
+    "answerable": true,
+    "notes": "Engineered retrieval-good/generation-bad case: the passage retrieves cleanly, but reproducing the full table of numbers exactly is where generation slips - the deterministic check catches any dropped or garbled row."
+  },
+  {
+    "id": "dog-in-kitchen",
+    "question": "Can I bring my dog into the kitchen?",
+    "reference_answer": "No. Under FDA Food Code §6-501.115, live animals may not be allowed on the premises of a food establishment, with narrow exceptions (such as service animals in areas where contamination cannot occur).",
+    "expected_chunk": {"path": "bulk/fda-2022-full/6-501.115.md", "heading": "6-501.115(A)"},
+    "answerable": true,
+    "notes": "Bulk-tier retrieval proof: answerable ONLY because the generated Food Code chapters are ingested. On the curated-only corpus (--skip-bulk) this same question is correctly declined, which is the 1.0 demo behavior."
+  },
+  {
+    "id": "paycheck",
+    "question": "When do I get paid?",
+    "expected_chunk": null,
+    "reference_answer": "The trusted food-safety documents do not cover payroll. The correct behavior is to decline and refer the employee to their manager.",
+    "answerable": false,
+    "notes": "Off-corpus: declining is scored as correct."
+  },
+  {
+    "id": "parking",
+    "question": "Where should I park during my shift?",
+    "expected_chunk": null,
+    "reference_answer": "The trusted food-safety documents do not cover parking. The correct behavior is to decline and refer the employee to their manager.",
+    "answerable": false,
+    "notes": "Off-corpus: declining is scored as correct."
+  },
+  {
+    "id": "microwave-cooking",
+    "question": "What are the rules for cooking raw animal foods in a microwave oven?",
+    "reference_answer": "Raw animal foods cooked in a microwave must be rotated or stirred during cooking, covered to retain surface moisture, heated to at least 165°F (74°C) in all parts of the food, and allowed to stand covered for 2 minutes after cooking.",
+    "expected_chunk": {"path": "bulk/fda-2022-full/3-401.12.md", "heading": "3-401.12"},
+    "answerable": true,
+    "notes": "Second bulk-tier hit, with checkable values spread across two chunks of the same section."
+  }
+]
