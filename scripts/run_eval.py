@@ -59,8 +59,12 @@ def main() -> None:
             retrieval = (f"hit @{r['retrieval_rank']}" if r["retrieval_hit"]
                          else "MISS")
         det_passes += r["det_pass"]
-        det = "pass" if r["det_pass"] else (
-            "FAIL " + (",".join(r["det_missing"]) or "declined"))
+        if r.get("error") and not r["answer"]:
+            det = "ERROR"
+        elif r["det_pass"]:
+            det = "pass"
+        else:
+            det = "FAIL " + (",".join(r["det_missing"]) or "declined")
         judge = str(r["judge_total"]) if r["judge_total"] is not None else "-"
         print(f"{r['id']:24} {retrieval:>12} {det:>14} {judge:>6} "
               f"{str(r['grounded']):>9}")

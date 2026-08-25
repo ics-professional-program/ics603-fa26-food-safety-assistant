@@ -19,9 +19,10 @@ correct behavior, not a failure.
 import re
 
 from pydantic import BaseModel, Field
-from pydantic_ai import Agent, NativeOutput
+from pydantic_ai import Agent, ModelAPIError, NativeOutput, UnexpectedModelBehavior
 
 from foodsafety_rag.agent import build_model
+from foodsafety_rag.generate import GenerationError
 from foodsafety_rag.pipeline import grounded_answer
 from foodsafety_rag.schemas import Answer, Passage
 
@@ -116,8 +117,27 @@ def run_judge(case: dict, answer: Answer, *, agent: Agent = judge_agent) -> Judg
 
 def evaluate_question(conn, case: dict, *, judge: bool = True,
                       judge_agent_override: Agent | None = None) -> dict:
-    """Run one eval case through the real pipeline and score it."""
-    answer = grounded_answer(case["question"], conn=conn)
+    """Run one eval case through the real pipeline and score it.
+
+    A pipeline error on a question gets ONE recorded retry (the ``attempts``
+    field says which answers took two); a second failure scores the question
+    as failed (an ``error`` field carries the reason) instead of aborting the
+    run - an eval that dies on its first flaky call measures nothing.
+    """
+    attempts = 1
+    try:
+        answer = grounded_answer(case["question"], conn=conn)
+    except GenerationError:
+        attempts = 2
+        try:
+            answer = grounded_answer(case["question"], conn=conn)
+        except GenerationError as exc:
+            return {
+                "id": case["id"], "retrieval_hit": None,
+                "retrieval_rank": None, "det_pass": False, "det_missing": [],
+                "judge_total": None, "judge": None, "grounded": None,
+                "answer": "", "attempts": attempts, "error": str(exc),
+            }
 
     retrieval_hit = None
     retrieval_rank = None
@@ -137,9 +157,13 @@ def evaluate_question(conn, case: dict, *, judge: bool = True,
         det_pass, det_missing = (not answer.grounded), set()
 
     verdict = None
+    judge_error = None
     if judge:
-        verdict = run_judge(case, answer,
-                            agent=judge_agent_override or judge_agent)
+        try:
+            verdict = run_judge(case, answer,
+                                agent=judge_agent_override or judge_agent)
+        except (ModelAPIError, UnexpectedModelBehavior) as exc:
+            judge_error = f"judge failed ({type(exc).__name__})"
 
     return {
         "id": case["id"],
@@ -151,4 +175,6 @@ def evaluate_question(conn, case: dict, *, judge: bool = True,
         "judge": verdict.model_dump() if verdict else None,
         "grounded": answer.grounded,
         "answer": answer.answer,
+        "attempts": attempts,
+        "error": judge_error,
     }
