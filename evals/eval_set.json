@@ -45,7 +45,7 @@
     "reference_answer": "The answer depends on the authority. The FDA Food Code 2022 edition requires water of at least 85°F (29.4°C) at a handwashing sink; the 2017 edition required 100°F (38°C). Hawaii's current Food Safety Code sets no minimum water temperature - hot water is optional - and in Hawaii establishments the state rule applies.",
     "expected_chunk": {"path": "hawaii/handwashing-water-temperature.md", "heading": "No minimum water temperature"},
     "answerable": true,
-    "notes": "Conflict case: state vs. federal AND 2017 vs. 2022. The answer should present the disagreeing values and say which governs."
+    "notes": "Conflict case: state vs. federal AND 2017 vs. 2022 - and a real retrieval miss. On the full corpus the labeled Hawaii chunk ranks ~8th (four near-duplicate FDA handwash chunks fill the top-4), so retrieval scores MISS while generation, working from the FDA chunks alone, still produces a plausible 85F-vs-100F answer that never mentions Hawaii. This is the retrieval-bad/generation-plausible disagreement, the mirror of roast-alternative."
   },
   {
     "id": "sesame-allergen",

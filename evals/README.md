@@ -22,9 +22,13 @@ answer it at all. The scoring code is
   passages, answers the question, cites sources, handles conflicts), each
   axis 0-2, run through the app's own provider selection.
 
-The set is built so retrieval and generation can disagree: `roast-alternative`
-retrieves its passage cleanly but asks generation to reproduce a table of six
-time/temperature pairs, which is exactly where an LLM drops or garbles a row.
+The set is built so retrieval and generation can disagree, in both
+directions. `roast-alternative` retrieves its passage cleanly but asks
+generation to reproduce a table of six time/temperature pairs, which is
+exactly where an LLM drops or garbles a row. `handwash-water-temp` is the
+mirror: the labeled Hawaii chunk ranks ~8th behind four near-duplicate FDA
+handwash chunks, so retrieval misses at k=4 while generation still writes a
+plausible federal-only answer.
 
 ## Running it
 
