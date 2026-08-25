@@ -45,7 +45,7 @@ def _replay_stream(question: str):
         return
 
     yield _sse({"type": "stage", "step": "embed", "status": "done",
-                "detail": "384-dim (replayed)", "elapsed_ms": 0})
+                "detail": "all-MiniLM-L6-v2 (replayed)", "elapsed_ms": 0})
     yield _sse({"type": "stage", "step": "retrieve", "status": "done",
                 "candidates": [{"doc": p.doc, "heading": p.heading, "score": p.score}
                                for p in fixture.passages], "elapsed_ms": 0})

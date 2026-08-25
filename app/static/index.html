@@ -404,7 +404,7 @@
   // The rail lists the whole pipeline before the first question is asked,
   // so the resting page doubles as an architecture diagram.
   const STEPS = [
-    { id: 'embed', label: 'Embed', idle: 'question → 384-dim vector (local model)' },
+    { id: 'embed', label: 'Embed', idle: 'question → vector, using all-MiniLM-L6-v2 on this machine' },
     { id: 'retrieve', label: 'Retrieve', idle: 'top-4 nearest passages from pgvector' },
     { id: 'guard', label: 'Guard', idle: 'top similarity must clear the threshold' },
     { id: 'generate', label: 'Generate', idle: 'answer written from the passages only' },
@@ -531,7 +531,9 @@
       if (e.status === 'start') {
         detail.textContent = 'asking the model…';
       } else {
-        detail.textContent = 'answer ready';
+        // Name the generating model here, the way Embed names the local one:
+        // the pair is the point, one model per side of the network boundary.
+        detail.textContent = e.model || 'answer ready';
         detail.append(timing(e.elapsed_ms));
         if (e.prompt_tokens != null) {
           const t = document.createElement('span');
