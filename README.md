@@ -11,35 +11,7 @@ provenance): a curated core adapted from the real FDA Food Code (2022 and
 SOPs written on the Institute of Child Nutrition's real HACCP-based SOP
 templates — the cafe is fictional, its procedures are not invented — including
 three real, citable disagreements between sources — plus `corpus/bulk/`, chapters 2-8 of both Food Code editions
-converted mechanically (~1,400 passages) so the 11.1 index comparison has
-enough rows to measure. `scripts/ingest_corpus.py --skip-bulk` ingests just
-the curated core, which is the fast path for the small-corpus demos.
-
-This is the course's reference architecture: the capstone project is your own
-version of this same pattern. It is also the fallback application for sessions
-that need a running app before your capstone is finished — 11.1 (add a vector
-column to a real schema), 12.0 (deploy a container stack), and 13.0 (evaluate an
-LLM app).
-
-## The codebase IS the module map
-
-| File | Course module | What it teaches |
-|---|---|---|
-| `foodsafety_rag/schemas.py` | M4 / M8 | Pydantic models — structure over guesswork |
-| `foodsafety_rag/agent.py` | M4 / M6 | Typed Pydantic AI agent, provider selection, citation validation, and bounded retry |
-| `foodsafety_rag/generate.py` | M4 | Typed generation plus intentionally low-level OpenAI-compatible raw and streaming calls |
-| `app/main.py` + `app/static/` | M4 | FastAPI service + minimal UI |
-| `tests/` | M6 | Automated tests as the check on generated code |
-| `foodsafety_rag/store.py` | M9 + M11 | SQL + vectors in ONE Postgres (pgvector) |
-| `query_log` table | M9 + M13 | What each question cost: grounded, tokens, latency |
-| `foodsafety_rag/embed.py` | M11 | Local sentence-transformer embeddings |
-| `foodsafety_rag/ingest.py`, `retrieve.py` | M11 | Chunking and top-k retrieval |
-| `foodsafety_rag/pipeline.py` | M11 | The grounding guard — decline, don't guess |
-| `Dockerfile`, `docker-compose.yml` | M10 + M12 | Containers locally, then Jetstream |
-| `notebooks/first_llm_call.ipynb` | 1.3 | Your first LLM call |
-
-Module numbers follow the Fall 2026 teaching order: M4 LLM APIs, M6 software
-engineering, M9 databases, M10 containers, M11 embeddings/RAG, M12 deployment.
+converted mechanically (~1,400 passages).
 
 ## Quick start (Docker)
 
@@ -73,21 +45,6 @@ The optional OpenAI and Anthropic adapters use their normal `OPENAI_API_KEY` and
 `ANTHROPIC_API_KEY`; Google Cloud uses its documented application-default or
 service-account credentials.
 
-The early `ask_model()` notebook and the true token-streaming implementation
-intentionally retain the raw OpenAI SDK so students can compare the lower-level
-protocol with the typed agent. With `LLM_PROVIDER=course`, `/ask/stream` uses that
-raw streaming path. With an optional provider, it uses the typed Pydantic AI path,
-validates the complete answer, and then sends word-sized UI chunks. `/ask` always
-uses the typed provider-independent path.
-
-Provider configuration is read when the application process imports the shared
-agent. Restart Uvicorn or the container after changing `.env`; changing variables
-inside an already-running process does not replace that agent's model.
-
-Note for the Docker path: `localhost` inside the app container is the container
-itself, not your laptop. A model server running on your machine is reachable as
-`http://host.docker.internal:1234/v1`.
-
 ## Local development (uv)
 
 ```bash
@@ -97,24 +54,6 @@ set -a; . ./.env; set +a                   # load the LLM settings into the shel
 uv run python scripts/ingest_corpus.py     # build the index
 uv run uvicorn app.main:app --port 8000
 ```
-
-Tests: `uv run pytest` (the LLM is always mocked; store/retrieve tests skip if
-the db container is down).
-
-The demo's `/ask` route is deliberately a regular `def`: FastAPI runs it in a
-threadpool, where the synchronous retrieval pipeline and `agent.run_sync()` are
-safe. The smaller 4.3 starter instead teaches an `async def` route that awaits
-`agent.run()`. Do not call `run_sync()` from inside an async route.
-
-`uv sync` installs the exact versions recorded in `uv.lock`, which is the same
-thing the Dockerfile does with `uv sync --locked`. If you change a dependency in
-`pyproject.toml`, run `uv lock` and commit the updated lock file, or the image
-build will fail — that failure is deliberate, and it means the lock file needs
-updating.
-
-On Linux, `torch` is installed from PyTorch's CPU-only index rather than PyPI;
-see the comment in `pyproject.toml`. The default Linux wheels carry CUDA and are
-several gigabytes, and this app only runs the embedding model on CPU.
 
 ## Class-demo fallback (no key, no network)
 
@@ -162,25 +101,3 @@ captured fixtures, so the live view still works with no key and no DB.
   [`docs/retrieval-reference.md`](docs/retrieval-reference.md).
 - `scripts/run_eval.py --label <name>` — run the labeled eval set
   ([`evals/`](evals/)); retrieval and generation scored separately.
-
-## Branding
-
-The web UI is styled with the UH Mānoa PMCS design system, vendored as the
-`skills/design-system` submodule
-([`skill.design-system`](https://github.com/ics-professional-program/skill.design-system)).
-Its brand tokens (colors, Helvetica Neue type, spacing, card/badge patterns)
-are inlined into `app/static/index.html` — no build step, no external CDN.
-
-The page is laid out for teaching: the answer column sits beside a sticky
-pipeline rail that lists embed → retrieve → guard → generate even before the
-first question, the guard step draws its decision on a similarity meter
-(candidate scores plotted against the 0.35 threshold), grounded answers show
-their citations, and the example-question chips match the replay fixtures so
-a class demo works with `REPLAY=1` and no API key.
-
-## Notes
-
-- Embeddings are local (`all-MiniLM-L6-v2`, 384-dim) — only generation needs
-  the endpoint. The key lives in `.env` (gitignored), never in code.
-- Deployment target: Jetstream (Oct 27–29 course block). This repo is
-  container-ready; no live deployment yet.
