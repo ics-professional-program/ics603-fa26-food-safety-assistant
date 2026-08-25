@@ -8,7 +8,8 @@ import time
 from collections.abc import Iterator
 
 from foodsafety_rag import embed, store
-from foodsafety_rag.config import SIMILARITY_THRESHOLD, TOP_K, get_settings
+from foodsafety_rag.config import (EMBED_MODEL_NAME, SIMILARITY_THRESHOLD,
+                                   TOP_K, get_settings)
 from foodsafety_rag.generate import GenerationError, answer_question, stream_grounded
 from foodsafety_rag.pipeline import NOT_FOUND_ANSWER
 from foodsafety_rag.schemas import Citation, Passage
@@ -30,8 +31,12 @@ def stream_events(question: str, *, conn, client=None, agent=None) -> Iterator[d
 
     t = time.monotonic()
     vec = embed.embed_text(question)
+    # Name the model rather than the vector width: which model produced the
+    # vector is the fact a reader can act on, and it is the contrast the demo
+    # is making - this one runs here, the generating model runs on the course
+    # endpoint.
     yield {"type": "stage", "step": "embed", "status": "done",
-           "detail": f"{len(vec)}-dim", "elapsed_ms": _ms(t)}
+           "detail": EMBED_MODEL_NAME.split("/")[-1], "elapsed_ms": _ms(t)}
 
     t = time.monotonic()
     rows = store.similarity_search(conn, vec, TOP_K)
@@ -74,6 +79,7 @@ def stream_events(question: str, *, conn, client=None, agent=None) -> Iterator[d
         store.log_outcome(conn, query_id, grounded=answer.grounded, usage=answer.usage)
         yield {"type": "stage", "step": "generate", "status": "done",
                "detail": "typed answer buffered before display", "elapsed_ms": _ms(t),
+               "model": get_settings().llm_model,
                **({"prompt_tokens": answer.usage.prompt_tokens,
                    "completion_tokens": answer.usage.completion_tokens}
                   if answer.usage else {})}
@@ -101,7 +107,7 @@ def stream_events(question: str, *, conn, client=None, agent=None) -> Iterator[d
                      for p in passages]
     store.log_outcome(conn, query_id, grounded=True, usage=usage)
     yield {"type": "stage", "step": "generate", "status": "done",
-           "elapsed_ms": _ms(t),
+           "elapsed_ms": _ms(t), "model": get_settings().llm_model,
            **({"prompt_tokens": usage.prompt_tokens,
                "completion_tokens": usage.completion_tokens} if usage else {})}
     yield {"type": "answer", "question": question, "answer": "".join(prose).strip(),

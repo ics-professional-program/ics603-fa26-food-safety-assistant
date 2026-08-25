@@ -7,9 +7,10 @@ the corpus doesn't cover a question, it declines instead of guessing.
 
 The corpus has two tiers (see [`corpus/README.md`](corpus/README.md) for
 provenance): a curated core adapted from the real FDA Food Code (2022 and
-2017 editions), Hawaii's HAR 11-50 food-safety rules, and fictional Pacific
-Market Cafe SOPs — including three real, citable disagreements between
-sources — plus `corpus/bulk/`, chapters 2-8 of both Food Code editions
+2017 editions), Hawaii's HAR 11-50 food-safety rules, and Pacific Market Cafe
+SOPs written on the Institute of Child Nutrition's real HACCP-based SOP
+templates — the cafe is fictional, its procedures are not invented — including
+three real, citable disagreements between sources — plus `corpus/bulk/`, chapters 2-8 of both Food Code editions
 converted mechanically (~1,400 passages) so the 11.1 index comparison has
 enough rows to measure. `scripts/ingest_corpus.py --skip-bulk` ingests just
 the curated core, which is the fast path for the small-corpus demos.
@@ -169,6 +170,13 @@ The web UI is styled with the UH Mānoa PMCS design system, vendored as the
 ([`skill.design-system`](https://github.com/ics-professional-program/skill.design-system)).
 Its brand tokens (colors, Helvetica Neue type, spacing, card/badge patterns)
 are inlined into `app/static/index.html` — no build step, no external CDN.
+
+The page is laid out for teaching: the answer column sits beside a sticky
+pipeline rail that lists embed → retrieve → guard → generate even before the
+first question, the guard step draws its decision on a similarity meter
+(candidate scores plotted against the 0.35 threshold), grounded answers show
+their citations, and the example-question chips match the replay fixtures so
+a class demo works with `REPLAY=1` and no API key.
 
 ## Notes
 

@@ -19,6 +19,7 @@ BASE_URL = os.environ.get("ASK_URL", "http://localhost:8000/ask")
 CANONICAL = {
     "poultry-temperature": "What is the minimum internal temperature for poultry?",
     "cooling-rice": "How long can I take to cool cooked rice?",
+    "handwashing-water": "How warm does handwashing water need to be?",
     "off-corpus-dog": "Can I bring my dog into the kitchen?",
 }
 

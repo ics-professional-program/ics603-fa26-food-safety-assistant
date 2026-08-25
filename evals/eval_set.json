@@ -64,6 +64,14 @@
     "notes": "Conflict case: SOP stricter than code. Both values should appear, with the SOP named as governing company operations."
   },
   {
+    "id": "illness-return-to-work",
+    "question": "How long after vomiting stops can an employee come back to work?",
+    "reference_answer": "Pacific Market Cafe's SOP requires an employee to be symptom-free for at least 48 hours before returning to work, which is stricter than the FDA Food Code, which allows reinstatement after the employee has been asymptomatic for at least 24 hours. Follow the SOP's 48 hours.",
+    "expected_chunk": {"path": "sop/employee-illness.md", "heading": "Symptoms requiring exclusion"},
+    "answerable": true,
+    "notes": "Conflict case: SOP stricter than code, second instance. Both durations should appear, with the SOP named as governing company operations."
+  },
+  {
     "id": "roast-alternative",
     "question": "What alternative time and temperature combinations can I use to cook a whole beef roast?",
     "reference_answer": "Whole meat roasts may use lower temperatures held longer: 130°F (54.4°C) for 112 minutes, 131°F (55°C) for 89 minutes, 133°F (56.1°C) for 56 minutes, 135°F (57.2°C) for 36 minutes, 140°F (60°C) for 12 minutes, or 145°F (62.8°C) for 4 minutes. Holding time may include postoven heat rise.",
