@@ -1,0 +1,53 @@
+{
+  "question": "How warm does handwashing water need to be?",
+  "answer": "Handwashing water must be warm enough to meet the minimum temperature required by the applicable code.  The 2022 edition of the FDA Food Code specifies that a hand‑washing sink must provide water at a temperature of at least 85 °F (29.4 °C) through a mixing valve or combination faucet (FDA Food Code §5‑202.12, “Water temperature at handwashing sinks”, “at least 85°F (29.4°C)”).  Under the earlier 2017 edition of the FDA Food Code the same requirement was at least 100 °F (38 °C) (FDA Food Code 2017 §5‑202.12, “Water temperature at handwashing sinks”, “at least 100°F (38°C)”).  The Hawaii health‑authority rule does not impose any minimum temperature; hot water is optional and the state rule is the one enforced in Hawaii (Hawaii HAR §11‑50‑61, “No minimum water temperature”, “The Hawaii rule does not set a minimum water temperature”).  Therefore, the governing temperature is 85 °F where the current FDA Food Code is adopted, but in Hawaii the state rule applies and has no minimum temperature requirement.",
+  "grounded": true,
+  "citations": [
+    {
+      "doc": "FDA Food Code §5-202.12",
+      "heading": "Water temperature at handwashing sinks",
+      "snippet": "at least 85°F (29.4°C)"
+    },
+    {
+      "doc": "FDA Food Code 2017 §5-202.12",
+      "heading": "Water temperature at handwashing sinks",
+      "snippet": "at least 100°F (38°C)"
+    },
+    {
+      "doc": "Hawaii HAR §11-50-61",
+      "heading": "No minimum water temperature",
+      "snippet": "The Hawaii rule does not set a minimum water temperature"
+    }
+  ],
+  "passages": [
+    {
+      "doc": "FDA Food Code §5-202.12 — Handwashing Sink Requirements",
+      "heading": "Water temperature at handwashing sinks",
+      "text": "Water temperature at handwashing sinks\nA handwashing sink must be equipped to provide water at a temperature of at\nleast 85°F (29.4°C) through a mixing valve or combination faucet. A steam\nmixing valve may not be used at a handwashing sink, because steam valves are\nhard to control and can scald.",
+      "score": 0.7085619568824818
+    },
+    {
+      "doc": "FDA Food Code 2017 §5-202.12 — Handwashing Sink Requirements",
+      "heading": "Water temperature at handwashing sinks",
+      "text": "Water temperature at handwashing sinks\nUnder the 2017 edition, a handwashing sink must be equipped to provide\nwater at a temperature of at least 100°F (38°C) through a mixing valve or\ncombination faucet. The 2022 edition later lowered this minimum to 85°F.\nA steam mixing valve may not be used at a handwashing sink.",
+      "score": 0.7052994966507008
+    },
+    {
+      "doc": "Hawaii HAR §11-50-61 — Handwashing Sink Installation",
+      "heading": "No minimum water temperature",
+      "text": "No minimum water temperature\nmust provide a flow of water for at least\nfifteen seconds without the need to reactivate the faucet, and faucets must\nprovide a sufficient flow of water to permit proper washing and rinsing of\nhands.\nThe Hawaii rule does not set a minimum water temperature for handwashing\nsinks: hot water is optional, and the mixing-valve requirement applies only\nif hot water is provided. This differs from the FDA model Food Code, which\nrequires water of at least 85°F at a handwashing sink in its 2022 edition.\nIn Hawaii establishments, the state rule is the one the health inspector\nenforces.",
+      "score": 0.6448643591919171
+    },
+    {
+      "doc": "FDA Food Code 2017 §5-202.12 — Handwashing Sink Requirements",
+      "heading": "Faucets",
+      "text": "Faucets\nat a temperature of at least 100°F (38°C) through a mixing valve or\ncombination faucet. The 2022 edition later lowered this minimum to 85°F.\nA steam mixing valve may not be used at a handwashing sink.\nA self-closing, slow-closing, or metering faucet must provide a flow of\nwater for at least 15 seconds without the need to reactivate the faucet.\nAn automatic handwashing facility must be installed in accordance with the\nmanufacturer's instructions.",
+      "score": 0.6293905752534028
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 731,
+    "completion_tokens": 858,
+    "latency_ms": 5647
+  }
+}
