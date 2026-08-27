@@ -1,4 +1,4 @@
-# Walkthrough recording — shot list (lecture 1.3, Aug 27)
+# Walkthrough recording — shot list (lecture 1.0, Aug 25)
 
 Fallback video in case the live demo fails. Record at 1080p; keep it under
 5 minutes. Prep: `docker compose up -d`, index built, `.env` loaded.

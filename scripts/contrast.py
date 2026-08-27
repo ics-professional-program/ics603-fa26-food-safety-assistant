@@ -1,6 +1,6 @@
 """Contrast demo: the SAME question through (a) a plain model call with no
-context, and (b) the grounded RAG pipeline. For the 1.3 grounded-vs-ungrounded
-shots.
+context, and (b) the grounded RAG pipeline. Used for the course-launch
+grounded-vs-ungrounded comparison.
 
 Run:  python scripts/contrast.py "What is the minimum internal temperature for poultry?"
 """

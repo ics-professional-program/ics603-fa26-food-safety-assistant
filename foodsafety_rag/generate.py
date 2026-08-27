@@ -1,7 +1,7 @@
 """LLM generation examples (course module M4).
 
 Two entry points:
-- ask_model():        plain, ungrounded call (the 1.3 notebook + contrast script)
+- ask_model():        plain, ungrounded call used by the contrast script
 - answer_question():  grounded Pydantic AI call with validated structured output
 
 The endpoint, model, and key are read only from the environment, so the same
@@ -76,7 +76,7 @@ def get_client() -> OpenAI:
 
 
 def ask_model(prompt: str, *, client: OpenAI | None = None) -> str:
-    """One plain LLM call - no retrieval, no grounding. The 1.3 'first taste'."""
+    """Make one plain LLM call with no retrieval or grounding."""
     client = client or get_client()
     try:
         response = client.chat.completions.create(
